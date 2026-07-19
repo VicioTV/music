@@ -193,11 +193,32 @@ canvas {
   mask-image: linear-gradient(to bottom, transparent, #000 16%, #000 84%, transparent);
 }
 
+.record-library__signature {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 53%;
+  width: min(96rem, 112vw);
+  max-width: none;
+  height: auto;
+  opacity: 0.22;
+  pointer-events: none;
+  user-select: none;
+  mix-blend-mode: screen;
+  filter: brightness(0.9) contrast(1.08) drop-shadow(0 0 2rem rgb(255 244 226 / 14%));
+  transform: translate(-50%, -50%) rotate(-8deg) scaleX(1.08);
+  transform-origin: center;
+}
+
 .record-library__header,
-.record-library__shelf,
 .record-library__hint {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+}
+
+.record-library__shelf {
+  position: relative;
+  z-index: 3;
 }
 
 .record-library__header {
@@ -205,6 +226,7 @@ canvas {
   justify-items: center;
   gap: 0.35rem;
   text-align: center;
+  transform: translateY(clamp(1rem, 3vh, 2rem));
 }
 
 .record-library__eyebrow,
@@ -458,8 +480,8 @@ canvas {
 }
 
 .scene--track-2 .track-card {
-  left: 24%;
-  top: 84%;
+  left: 56%;
+  top: 36%;
 }
 
 .scene--track-2 .track-card__label,
@@ -745,6 +767,17 @@ canvas {
     margin-top: 1.75rem;
   }
 
+  .record-library__signature {
+    top: 48%;
+    width: 172vw;
+    opacity: 0.18;
+    transform: translate(-50%, -50%) rotate(-10deg) scaleX(1.04);
+  }
+
+  .record-library__header {
+    transform: translateY(0.75rem);
+  }
+
   .record-library__hint {
     margin-top: 1.75rem;
     text-align: center;
@@ -790,6 +823,7 @@ canvas {
   .record-choice__vinyl,
   .record-choice__sleeve img,
   .record-library,
+  .record-library__signature,
   .collection-trigger,
   .collection-trigger__disc {
     transition-duration: 1ms;
