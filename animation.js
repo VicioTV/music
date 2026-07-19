@@ -64,6 +64,7 @@
   let activeTrack = TRACKS[0];
   let sceneTwoRain = [];
   let sceneTwoDebris = [];
+  let sceneTwoBuildingLights = [];
   let hasEnteredScene = false;
 
   const vertexShaderSource = `
@@ -364,6 +365,7 @@
       length: randomBetween(7, 25),
       alpha: randomBetween(0.08, 0.32),
       drift: randomBetween(-0.012, 0.004),
+      pointSize: randomBetween(0.45, 1.35),
     }));
 
     sceneTwoDebris = Array.from({ length: 22 }, (_, index) => ({
@@ -378,6 +380,33 @@
       alpha: randomBetween(0.08, 0.24),
       warmth: Math.random(),
     }));
+
+    const buildingShapes = [
+      [570, 448, 48, 145], [628, 405, 42, 184], [680, 458, 58, 132],
+      [748, 423, 46, 166], [806, 446, 58, 143], [875, 410, 40, 178],
+      [928, 455, 62, 132], [1002, 408, 44, 176], [1060, 442, 55, 146],
+      [1128, 422, 46, 164], [1185, 448, 58, 138], [1450, 444, 62, 150],
+      [1524, 420, 54, 176], [1590, 452, 58, 138],
+    ];
+    sceneTwoBuildingLights = buildingShapes.flatMap(([x, y, buildingWidth, buildingHeight], buildingIndex) => {
+      const columns = Math.max(2, Math.floor(buildingWidth / 11));
+      const rows = Math.max(4, Math.floor(buildingHeight / 18));
+      const lights = [];
+      for (let row = 0; row < rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          if ((row + column + buildingIndex) % 3 === 0 || Math.random() > 0.58) continue;
+          lights.push({
+            x: x + 6 + column * ((buildingWidth - 12) / Math.max(1, columns - 1)),
+            y: y + 9 + row * ((buildingHeight - 18) / Math.max(1, rows - 1)),
+            phase: Math.random() * Math.PI * 2,
+            speed: randomBetween(0.38, 1.15),
+            warmth: Math.random(),
+            size: randomBetween(0.65, 1.45),
+          });
+        }
+      }
+      return lights;
+    });
   }
 
   function getCoverTransform() {
@@ -945,14 +974,19 @@
     const beamAngle = 0.12 + Math.sin(seconds * 0.19) * 0.055;
     const beamEndX = imageX(1110 + Math.sin(seconds * 0.19) * 48);
     const beamEndY = imageY(570);
+    const cameraFlashPhase = (seconds + 7.2) % 11;
+    const cameraFlashStrength = cameraFlashPhase < 1
+      ? Math.pow(Math.sin(cameraFlashPhase * Math.PI), 0.72)
+      : 0;
+    const groundBeamVisibility = 1 - cameraFlashStrength * 0.74;
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
     particleContext.filter = `blur(${Math.max(8, 13 * scale)}px)`;
     const searchlight = particleContext.createLinearGradient(
       helicopterX, helicopterY, beamEndX, beamEndY
     );
-    searchlight.addColorStop(0, `rgba(202, 233, 255, ${0.18 + ambientPulse * 0.05})`);
-    searchlight.addColorStop(0.46, "rgba(143, 200, 231, 0.07)");
+    searchlight.addColorStop(0, `rgba(202, 233, 255, ${(0.18 + ambientPulse * 0.05) * groundBeamVisibility})`);
+    searchlight.addColorStop(0.46, `rgba(143, 200, 231, ${0.07 * groundBeamVisibility})`);
     searchlight.addColorStop(1, "rgba(96, 160, 197, 0)");
     particleContext.fillStyle = searchlight;
     particleContext.beginPath();
@@ -1063,17 +1097,102 @@
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
     particleContext.lineCap = "round";
-    for (const drop of sceneTwoRain) {
-      const travel = (drop.y + seconds * drop.speed) % 1.08;
+    for (let dropIndex = 0; dropIndex < sceneTwoRain.length; dropIndex += 1) {
+      const drop = sceneTwoRain[dropIndex];
+      const travel = ((drop.y - seconds * drop.speed * 0.34) % 1.08 + 1.08) % 1.08;
       const x = ((drop.x + seconds * drop.drift + 1.08) % 1.08) * width;
       const y = travel * height;
-      const length = drop.length * (0.56 + drop.depth * 1.55) * scale;
+      const length = drop.length * (0.34 + drop.depth * 0.82) * scale;
       particleContext.beginPath();
       particleContext.moveTo(x, y);
-      particleContext.lineTo(x - length * (0.08 + drop.depth * 0.08), y + length);
-      particleContext.strokeStyle = `rgba(178, 211, 229, ${drop.alpha * (0.26 + drop.depth * 0.68)})`;
-      particleContext.lineWidth = Math.max(0.3, 0.34 + drop.depth * 0.78);
+      particleContext.lineTo(x + length * (0.11 + drop.depth * 0.09), y - length);
+      particleContext.strokeStyle = `rgba(178, 211, 229, ${drop.alpha * (0.24 + drop.depth * 0.54)})`;
+      particleContext.lineWidth = Math.max(0.28, 0.3 + drop.depth * 0.56);
       particleContext.stroke();
+
+      if (dropIndex % 2 === 0 || drop.depth > 0.58) {
+        const pointAlpha = drop.alpha * (0.2 + drop.depth * 0.48);
+        particleContext.beginPath();
+        particleContext.fillStyle = `rgba(197, 224, 237, ${pointAlpha})`;
+        particleContext.arc(
+          x + Math.sin(dropIndex * 1.7) * 3 * scale,
+          y - length * 0.42,
+          Math.max(0.32, drop.pointSize * (0.55 + drop.depth * 0.75) * scale),
+          0,
+          Math.PI * 2
+        );
+        particleContext.fill();
+      }
+    }
+    particleContext.restore();
+
+    const windCycle = seconds * 0.72;
+    const windGust = 0.5 + 0.5 * Math.sin(windCycle);
+    const windFlutter = Math.sin(seconds * 1.28 + Math.sin(seconds * 0.31)) * 0.5 + 0.5;
+    const hairAnchors = [
+      [1336, 423, 0.2], [1342, 420, 1.1], [1349, 421, 2.2],
+      [1356, 424, 3.4], [1363, 427, 4.1], [1370, 431, 5.3],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(0.35, 0.75 * scale)}px)`;
+    for (const [anchorX, anchorY, phase] of hairAnchors) {
+      const lift = Math.sin(seconds * 1.05 + phase) * 2.4 + windGust * 4.2;
+      const length = 7 + windGust * 10 + Math.sin(seconds * 0.83 + phase) * 2.2;
+      const tailX = anchorX - length;
+      const tailY = anchorY - lift;
+      const ribbonWidth = (0.65 + windFlutter * 0.75) * scale;
+      particleContext.beginPath();
+      particleContext.moveTo(imageX(anchorX), imageY(anchorY));
+      particleContext.quadraticCurveTo(
+        imageX(anchorX - length * 0.48),
+        imageY(anchorY - lift * 0.2 - Math.sin(seconds * 1.4 + phase) * 1.6),
+        imageX(tailX),
+        imageY(tailY)
+      );
+      particleContext.quadraticCurveTo(
+        imageX(anchorX - length * 0.45),
+        imageY(anchorY - lift * 0.12 + ribbonWidth),
+        imageX(anchorX),
+        imageY(anchorY + ribbonWidth)
+      );
+      particleContext.closePath();
+      particleContext.fillStyle = `rgba(154, 190, 205, ${0.045 + windGust * 0.055})`;
+      particleContext.fill();
+    }
+
+    const coatRibbons = [
+      [1321, 658, 1312, 742, 31, 0.1],
+      [1334, 692, 1328, 754, 24, 1.7],
+      [1402, 682, 1408, 746, 18, 3.2],
+    ];
+    particleContext.filter = `blur(${Math.max(0.7, 1.25 * scale)}px)`;
+    for (const [topX, topY, hemX, hemY, reach, phase] of coatRibbons) {
+      const gust = windGust * reach + Math.sin(seconds * 1.18 + phase) * 5;
+      const rise = windFlutter * 7 + Math.sin(seconds * 0.94 + phase) * 3;
+      const tailX = hemX - gust;
+      const tailY = hemY - rise;
+      const fabric = particleContext.createLinearGradient(
+        imageX(topX), imageY(topY), imageX(tailX), imageY(tailY)
+      );
+      fabric.addColorStop(0, "rgba(109, 143, 158, 0)");
+      fabric.addColorStop(0.58, `rgba(125, 158, 171, ${0.028 + windGust * 0.035})`);
+      fabric.addColorStop(1, "rgba(164, 191, 201, 0)");
+      particleContext.beginPath();
+      particleContext.moveTo(imageX(topX), imageY(topY));
+      particleContext.bezierCurveTo(
+        imageX(topX - gust * 0.18), imageY(topY + 28),
+        imageX(tailX + 8), imageY(tailY - 8),
+        imageX(tailX), imageY(tailY)
+      );
+      particleContext.bezierCurveTo(
+        imageX(tailX + 12), imageY(tailY + 7),
+        imageX(hemX + 6), imageY(hemY + 2),
+        imageX(topX + 4), imageY(topY + 5)
+      );
+      particleContext.closePath();
+      particleContext.fillStyle = fabric;
+      particleContext.fill();
     }
     particleContext.restore();
 
@@ -1100,16 +1219,18 @@
       imageX(238), imageY(498), 18 * scale,
       imageX(238), imageY(498), 330 * scale
     );
-    interiorGlow.addColorStop(0, `rgba(255, 191, 103, ${0.025 + visualLevel * 0.105})`);
-    interiorGlow.addColorStop(0.56, `rgba(255, 126, 74, ${0.015 + bassLevel * 0.055})`);
-    interiorGlow.addColorStop(1, "rgba(255, 76, 55, 0)");
+    interiorGlow.addColorStop(0, `rgba(255, 174, 82, ${0.035 + visualLevel * 0.125})`);
+    interiorGlow.addColorStop(0.5, `rgba(255, 83, 59, ${0.024 + bassLevel * 0.078})`);
+    interiorGlow.addColorStop(1, "rgba(198, 18, 42, 0)");
     particleContext.fillStyle = interiorGlow;
     particleContext.fillRect(imageX(40), imageY(225), 500 * scale, 510 * scale);
     particleContext.restore();
 
     particleContext.save();
+    traceWindow();
+    particleContext.clip();
     particleContext.globalCompositeOperation = "lighter";
-    particleContext.filter = `blur(${Math.max(6, (8 + visualLevel * 12) * scale)}px)`;
+    particleContext.filter = `blur(${Math.max(7, (9 + visualLevel * 13) * scale)}px)`;
     const windowSectors = 64;
     for (let sector = 0; sector < windowSectors; sector += 1) {
       const edgeProgress = sector / windowSectors * 4;
@@ -1133,12 +1254,17 @@
         frequency /= 5;
       }
       const frequencyPower = Math.pow(frequency, 1.12);
-      const color = getReactiveColor(Math.min(1, frequencyPower * 0.86 + visualLevel * 0.48));
-      const outward = (4 + frequencyPower * (18 + visualLevel * 20)) * scale;
-      const plumeX = imageX(pointX) + normal[0] * outward;
-      const plumeY = imageY(pointY) + normal[1] * outward;
-      const plumeRadius = (11 + visualLevel * 9 + frequencyPower * 30) * scale;
-      const plumeAlpha = 0.035 + visualLevel * 0.12 + frequencyPower * 0.24;
+      const redIntensity = Math.min(1, frequencyPower * 0.82 + visualLevel * 0.58);
+      const color = {
+        red: 255,
+        green: Math.round(132 - redIntensity * 78),
+        blue: Math.round(42 + redIntensity * 28),
+      };
+      const inward = (6 + frequencyPower * (20 + visualLevel * 22)) * scale;
+      const plumeX = imageX(pointX) - normal[0] * inward;
+      const plumeY = imageY(pointY) - normal[1] * inward;
+      const plumeRadius = (14 + visualLevel * 10 + frequencyPower * 32) * scale;
+      const plumeAlpha = 0.048 + visualLevel * 0.14 + frequencyPower * 0.27;
       const plume = particleContext.createRadialGradient(
         plumeX, plumeY, 0, plumeX, plumeY, plumeRadius
       );
@@ -1252,6 +1378,33 @@
     }
     particleContext.restore();
 
+    particleContext.save();
+    particleContext.globalCompositeOperation = "lighter";
+    for (const light of sceneTwoBuildingLights) {
+      const wave = 0.5 + 0.5 * Math.sin(seconds * light.speed + light.phase);
+      const illumination = 0.16 + Math.pow(wave, 3.2) * 0.84;
+      const lightX = imageX(light.x);
+      const lightY = imageY(light.y);
+      const lightColor = light.warmth > 0.68
+        ? [255, 178, 92]
+        : light.warmth < 0.16
+          ? [255, 91, 118]
+          : [117, 216, 255];
+      particleContext.beginPath();
+      particleContext.fillStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${0.035 + illumination * 0.24})`;
+      particleContext.arc(lightX, lightY, light.size * (0.6 + illumination * 0.8) * scale, 0, Math.PI * 2);
+      particleContext.fill();
+      if (illumination > 0.76) {
+        const haloRadius = light.size * 4.2 * scale;
+        const halo = particleContext.createRadialGradient(lightX, lightY, 0, lightX, lightY, haloRadius);
+        halo.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.09})`);
+        halo.addColorStop(1, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
+        particleContext.fillStyle = halo;
+        particleContext.fillRect(lightX - haloRadius, lightY - haloRadius, haloRadius * 2, haloRadius * 2);
+      }
+    }
+    particleContext.restore();
+
     const cityLights = [
       [645, 520, 0.2], [730, 505, 1.1], [810, 548, 2.4], [905, 518, 3.2],
       [1120, 532, 4.3], [1208, 498, 5.2], [1450, 542, 6.1], [1570, 510, 7.4],
@@ -1274,6 +1427,31 @@
       particleContext.globalCompositeOperation = "screen";
       particleContext.fillStyle = `rgba(${bassColor.red}, ${bassColor.green}, ${bassColor.blue}, ${bassLevel * 0.028})`;
       particleContext.fillRect(0, 0, width, height);
+      particleContext.restore();
+    }
+
+    if (cameraFlashStrength > 0.002) {
+      const flashRadius = Math.max(width, height) * 0.78;
+      const cameraBloom = particleContext.createRadialGradient(
+        helicopterX, helicopterY, 0,
+        helicopterX, helicopterY, flashRadius
+      );
+      cameraBloom.addColorStop(0, `rgba(244, 252, 255, ${cameraFlashStrength * 0.98})`);
+      cameraBloom.addColorStop(0.045, `rgba(216, 241, 255, ${cameraFlashStrength * 0.72})`);
+      cameraBloom.addColorStop(0.23, `rgba(151, 211, 244, ${cameraFlashStrength * 0.24})`);
+      cameraBloom.addColorStop(1, "rgba(80, 142, 190, 0)");
+      particleContext.save();
+      particleContext.globalCompositeOperation = "screen";
+      particleContext.fillStyle = cameraBloom;
+      particleContext.fillRect(0, 0, width, height);
+      particleContext.fillStyle = `rgba(213, 239, 255, ${cameraFlashStrength * 0.16})`;
+      particleContext.fillRect(0, 0, width, height);
+      const flare = particleContext.createLinearGradient(0, helicopterY, width, helicopterY);
+      flare.addColorStop(0, "rgba(164, 218, 250, 0)");
+      flare.addColorStop(0.5, `rgba(232, 248, 255, ${cameraFlashStrength * 0.22})`);
+      flare.addColorStop(1, "rgba(164, 218, 250, 0)");
+      particleContext.fillStyle = flare;
+      particleContext.fillRect(0, helicopterY - 2 * scale, width, 4 * scale);
       particleContext.restore();
     }
   }
