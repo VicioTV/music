@@ -418,6 +418,7 @@
             speed: randomBetween(0.38, 1.15),
             warmth: Math.random(),
             size: randomBetween(0.65, 1.45),
+            frequencyIndex: 3 + ((buildingIndex * 5 + column * 3 + row) % 42),
           });
         }
       }
@@ -956,6 +957,17 @@
     const ambientPulse = 0.5 + 0.5 * Math.sin(seconds * 0.42);
     const imageX = (value) => offsetX + value * scale;
     const imageY = (value) => offsetY + value * scale;
+    const getFrequencyLevel = (frequencyIndex, sampleRadius = 2) => {
+      if (!audioFrequencyData || audioFrequencyData.length === 0) return 0;
+      let total = 0;
+      let samples = 0;
+      for (let offset = -sampleRadius; offset <= sampleRadius; offset += 1) {
+        const index = Math.max(0, Math.min(audioFrequencyData.length - 1, frequencyIndex + offset));
+        total += audioFrequencyData[index] / 255;
+        samples += 1;
+      }
+      return total / samples;
+    };
 
     particleContext.clearRect(0, 0, width, height);
 
@@ -1256,18 +1268,25 @@
     }
     particleContext.restore();
 
-    const glassGlint = Math.pow(0.5 + 0.5 * Math.sin(seconds * 1.7), 9) * (0.34 + visualLevel * 0.66);
+    const glassFrequency = Math.pow(getFrequencyLevel(9, 3), 0.82);
+    const glassGlint = Math.min(
+      1,
+      0.05 + glassFrequency * 0.78 + bassLevel * 0.34 + Math.pow(0.5 + 0.5 * Math.sin(seconds * 1.7), 9) * 0.18
+    );
     if (glassGlint > 0.02) {
-      const glintX = imageX(229);
-      const glintY = imageY(520);
-      const glint = particleContext.createRadialGradient(glintX, glintY, 0, glintX, glintY, 26 * scale);
-      glint.addColorStop(0, `rgba(255, 244, 218, ${glassGlint * 0.72})`);
-      glint.addColorStop(0.25, `rgba(255, 166, 112, ${glassGlint * 0.22})`);
-      glint.addColorStop(1, "rgba(255, 90, 84, 0)");
+      const glintX = imageX(260);
+      const glintY = imageY(527);
+      const glintRadius = (20 + glassGlint * 26) * scale;
+      const glint = particleContext.createRadialGradient(glintX, glintY, 0, glintX, glintY, glintRadius);
+      glint.addColorStop(0, `rgba(255, 246, 222, ${glassGlint * 0.68})`);
+      glint.addColorStop(0.16, `rgba(255, 76, 74, ${glassGlint * 0.42})`);
+      glint.addColorStop(0.48, `rgba(222, 22, 48, ${glassGlint * 0.2})`);
+      glint.addColorStop(1, "rgba(255, 44, 68, 0)");
       particleContext.save();
-      particleContext.globalCompositeOperation = "screen";
+      particleContext.globalCompositeOperation = "lighter";
+      particleContext.filter = `blur(${Math.max(2, 4 * scale)}px)`;
       particleContext.fillStyle = glint;
-      particleContext.fillRect(glintX - 28 * scale, glintY - 28 * scale, 56 * scale, 56 * scale);
+      particleContext.fillRect(glintX - glintRadius, glintY - glintRadius, glintRadius * 2, glintRadius * 2);
       particleContext.restore();
     }
 
@@ -1321,16 +1340,30 @@
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "lighter";
-    for (const [startX, startY, endX, endY, phase] of roadLights) {
+    for (let pathIndex = 0; pathIndex < roadLights.length; pathIndex += 1) {
+      const [startX, startY, endX, endY, phase] = roadLights[pathIndex];
       for (let light = 0; light < 7; light += 1) {
         const travel = (phase + light / 7 + seconds * 0.065) % 1;
         const x = startX + (endX - startX) * travel;
         const y = startY + (endY - startY) * travel;
-        const radius = (0.6 + travel * 1.5) * scale;
+        const isRed = light % 3 === 0;
+        const roadFrequency = Math.pow(getFrequencyLevel(3 + ((pathIndex * 9 + light * 4) % 38), 2), 0.9);
+        const roadPulse = Math.min(1, roadFrequency * 0.82 + (isRed ? bassLevel * 0.62 : visualLevel * 0.2));
+        const radius = (0.6 + travel * 1.5 + roadPulse * 2.6) * scale;
+        if (roadPulse > 0.12) {
+          const haloRadius = radius * (2.6 + roadPulse * 2.2);
+          const halo = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), haloRadius);
+          halo.addColorStop(0, isRed
+            ? `rgba(255, 36, 62, ${roadPulse * 0.28})`
+            : `rgba(82, 205, 255, ${roadPulse * 0.18})`);
+          halo.addColorStop(1, "rgba(0, 0, 0, 0)");
+          particleContext.fillStyle = halo;
+          particleContext.fillRect(imageX(x) - haloRadius, imageY(y) - haloRadius, haloRadius * 2, haloRadius * 2);
+        }
         particleContext.beginPath();
-        particleContext.fillStyle = light % 3 === 0
-          ? `rgba(255, 92, 98, ${0.12 + travel * 0.3})`
-          : `rgba(101, 215, 255, ${0.09 + travel * 0.28})`;
+        particleContext.fillStyle = isRed
+          ? `rgba(255, 56, 76, ${0.13 + travel * 0.26 + roadPulse * 0.52})`
+          : `rgba(101, 215, 255, ${0.09 + travel * 0.24 + roadPulse * 0.35})`;
         particleContext.arc(imageX(x), imageY(y), radius, 0, Math.PI * 2);
         particleContext.fill();
       }
@@ -1360,7 +1393,8 @@
     particleContext.globalCompositeOperation = "lighter";
     for (const light of sceneTwoBuildingLights) {
       const wave = 0.5 + 0.5 * Math.sin(seconds * light.speed + light.phase);
-      const illumination = 0.16 + Math.pow(wave, 3.2) * 0.84;
+      const frequency = Math.pow(getFrequencyLevel(light.frequencyIndex, 2), 1.04);
+      const illumination = Math.min(1, 0.08 + Math.pow(wave, 3.2) * 0.14 + frequency * 0.76 + bassLevel * 0.12);
       const lightX = imageX(light.x);
       const lightY = imageY(light.y);
       const lightColor = light.warmth > 0.68
@@ -1369,17 +1403,39 @@
           ? [255, 91, 118]
           : [117, 216, 255];
       particleContext.beginPath();
-      particleContext.fillStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${0.035 + illumination * 0.24})`;
-      particleContext.arc(lightX, lightY, light.size * (0.6 + illumination * 0.8) * scale, 0, Math.PI * 2);
+      particleContext.fillStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${0.025 + illumination * 0.48})`;
+      particleContext.arc(lightX, lightY, light.size * (0.55 + illumination * 1.45) * scale, 0, Math.PI * 2);
       particleContext.fill();
-      if (illumination > 0.76) {
-        const haloRadius = light.size * 4.2 * scale;
+      if (illumination > 0.42) {
+        const haloRadius = light.size * (3.2 + illumination * 4.6) * scale;
         const halo = particleContext.createRadialGradient(lightX, lightY, 0, lightX, lightY, haloRadius);
-        halo.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.09})`);
+        halo.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.16})`);
         halo.addColorStop(1, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
         particleContext.fillStyle = halo;
         particleContext.fillRect(lightX - haloRadius, lightY - haloRadius, haloRadius * 2, haloRadius * 2);
       }
+    }
+    particleContext.restore();
+
+    const reactiveRedLights = [
+      [701, 647, 2, 1.35], [869, 680, 4, 1.7],
+      [692, 393, 7, 0.48], [805, 409, 12, 0.42], [954, 432, 17, 0.4],
+      [1252, 444, 23, 0.42], [1496, 469, 29, 0.48], [1592, 476, 34, 0.48],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "lighter";
+    particleContext.filter = `blur(${Math.max(1.4, 2.2 * scale)}px)`;
+    for (const [x, y, frequencyIndex, emphasis] of reactiveRedLights) {
+      const frequency = Math.pow(getFrequencyLevel(frequencyIndex, 2), 0.78);
+      const pulse = Math.min(1, frequency * 0.82 + bassLevel * 0.52);
+      const radius = (3.4 + pulse * 15 * emphasis) * scale;
+      const beacon = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), radius);
+      beacon.addColorStop(0, `rgba(255, 232, 203, ${0.24 + pulse * 0.62})`);
+      beacon.addColorStop(0.12, `rgba(255, 38, 56, ${0.18 + pulse * 0.54})`);
+      beacon.addColorStop(0.48, `rgba(220, 12, 42, ${pulse * 0.2})`);
+      beacon.addColorStop(1, "rgba(190, 0, 36, 0)");
+      particleContext.fillStyle = beacon;
+      particleContext.fillRect(imageX(x) - radius, imageY(y) - radius, radius * 2, radius * 2);
     }
     particleContext.restore();
 
@@ -1389,11 +1445,14 @@
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
-    for (const [x, y, phase] of cityLights) {
+    for (let cityIndex = 0; cityIndex < cityLights.length; cityIndex += 1) {
+      const [x, y, phase] = cityLights[cityIndex];
       const twinkle = Math.pow(0.5 + 0.5 * Math.sin(seconds * 1.28 + phase), 5);
-      const lightRadius = (0.7 + twinkle * 1.9) * scale;
+      const frequency = Math.pow(getFrequencyLevel(8 + cityIndex * 4, 2), 0.95);
+      const cityPulse = Math.min(1, frequency * 0.88 + twinkle * 0.22);
+      const lightRadius = (0.7 + cityPulse * 3.1) * scale;
       particleContext.beginPath();
-      particleContext.fillStyle = `rgba(192, 230, 241, ${0.06 + twinkle * 0.38})`;
+      particleContext.fillStyle = `rgba(192, 230, 241, ${0.05 + cityPulse * 0.52})`;
       particleContext.arc(imageX(x), imageY(y), lightRadius, 0, Math.PI * 2);
       particleContext.fill();
     }
