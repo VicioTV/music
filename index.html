@@ -4,25 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
-    <title>El portal — loop de 8 segundos</title>
-    <link rel="stylesheet" href="styles.css?v=20260719-9">
+    <title>Creador100k — Night Records</title>
+    <link rel="stylesheet" href="styles.css?v=20260719-11">
   </head>
   <body>
-    <main class="scene" aria-label="Escena cinematográfica de un portal">
+    <main class="scene scene--track-1" data-track="1" aria-label="Experiencia audiovisual de Creador100k">
+      <div class="scene__backdrop" id="sceneBackdrop" aria-hidden="true"></div>
       <canvas id="world" aria-hidden="true"></canvas>
       <canvas id="particles" aria-hidden="true"></canvas>
+
+      <button class="collection-trigger" id="collectionTrigger" type="button" aria-label="Cambiar canción">
+        <span class="collection-trigger__disc" aria-hidden="true"></span>
+        <span class="collection-trigger__label">Colección</span>
+      </button>
 
       <div class="track-card">
         <button
           class="track-card__toggle"
           id="trackButton"
           type="button"
-          aria-label="Reproducir la canción y alternar pantalla completa. Listening to: I have to go.. forever - Creador100k"
+          aria-label="Reproducir la canción y alternar pantalla completa. Listening to: I have to go… forever — Creador100k"
           aria-pressed="false"
         >
           <span class="track-card__copy">
             <span class="track-card__label">Listening to:</span>
-            <span class="track-card__title">I have to go.. forever</span>
+            <span class="track-card__title">I have to go… forever</span>
             <span class="track-card__artist">Creador100k</span>
           </span>
         </button>
@@ -60,7 +66,64 @@
       <audio id="soundtrack" src="Imagen1.mp3" preload="auto"></audio>
 
       <div class="load-state" id="loadState" role="status">Preparando el umbral…</div>
+
+      <section class="record-library" id="recordLibrary" aria-labelledby="libraryTitle">
+        <div class="record-library__atmosphere" aria-hidden="true"></div>
+        <header class="record-library__header">
+          <p class="record-library__eyebrow">Creador100k presents</p>
+          <h1 id="libraryTitle">Choose a record</h1>
+          <p class="record-library__intro">Seleccioná un vinilo para entrar en su escena.</p>
+        </header>
+
+        <div class="record-library__shelf" role="group" aria-label="Canciones disponibles">
+          <button
+            class="record-choice record-choice--warm"
+            type="button"
+            data-track-id="1"
+            aria-label="Escuchar I have to go… forever de Creador100k"
+          >
+            <span class="record-choice__object" aria-hidden="true">
+              <span class="record-choice__vinyl">
+                <span class="record-choice__label record-choice__label--one"></span>
+              </span>
+              <span class="record-choice__sleeve">
+                <img src="Imagen1.png" alt="" draggable="false">
+                <span class="record-choice__sleeve-grain"></span>
+                <span class="record-choice__number">01</span>
+              </span>
+            </span>
+            <span class="record-choice__details">
+              <span class="record-choice__title">I have to go… forever</span>
+              <span class="record-choice__meta">Creador100k · Preview 1:40</span>
+            </span>
+          </button>
+
+          <button
+            class="record-choice record-choice--cold"
+            type="button"
+            data-track-id="2"
+            aria-label="Escuchar Perfume and Wine 壊さないで de Creador100k"
+          >
+            <span class="record-choice__object" aria-hidden="true">
+              <span class="record-choice__vinyl">
+                <span class="record-choice__label record-choice__label--two"></span>
+              </span>
+              <span class="record-choice__sleeve">
+                <img src="Imagen2.png" alt="" draggable="false">
+                <span class="record-choice__sleeve-grain"></span>
+                <span class="record-choice__number">02</span>
+              </span>
+            </span>
+            <span class="record-choice__details">
+              <span class="record-choice__title">Perfume and Wine 壊さないで</span>
+              <span class="record-choice__meta">Creador100k · Preview 1:40</span>
+            </span>
+          </button>
+        </div>
+
+        <p class="record-library__hint">Enter para escuchar · Esc para volver</p>
+      </section>
     </main>
-    <script src="animation.js?v=20260719-8"></script>
+    <script src="animation.js?v=20260719-11"></script>
   </body>
 </html>

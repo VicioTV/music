@@ -17,6 +17,30 @@
   const trackDuration = document.querySelector("#trackDuration");
   const soundtrack = document.querySelector("#soundtrack");
   const loadState = document.querySelector("#loadState");
+  const trackTitle = document.querySelector(".track-card__title");
+  const trackArtist = document.querySelector(".track-card__artist");
+  const recordLibrary = document.querySelector("#recordLibrary");
+  const recordChoices = [...document.querySelectorAll("[data-track-id]")];
+  const collectionTrigger = document.querySelector("#collectionTrigger");
+
+  const TRACKS = [
+    {
+      id: 1,
+      title: "I have to go… forever",
+      artist: "Creador100k",
+      image: "Imagen1.png",
+      audio: "Imagen1.mp3",
+      sceneLabel: "Escena del portal",
+    },
+    {
+      id: 2,
+      title: "Perfume and Wine 壊さないで",
+      artist: "Creador100k",
+      image: "Imagen2.png",
+      audio: "Imagen2.mp3",
+      sceneLabel: "Escena de la estación nocturna",
+    },
+  ];
 
   let startTime = performance.now();
   let animationFrame = 0;
@@ -33,6 +57,9 @@
   let audioBass = 0;
   let audioBassFlash = 0;
   let isSeeking = false;
+  let activeTrack = TRACKS[0];
+  let sceneTwoRain = [];
+  let hasEnteredScene = false;
 
   const vertexShaderSource = `
     attribute vec2 a_position;
@@ -319,6 +346,19 @@
       twinkle: randomBetween(15, 29),
       tone: Math.random(),
       halo: Math.random() > 0.91,
+    }));
+  }
+
+  function createSceneTwoRain() {
+    const density = Math.min(260, Math.round(window.innerWidth / 5));
+    sceneTwoRain = Array.from({ length: density }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      depth: Math.pow(Math.random(), 1.35),
+      speed: randomBetween(0.055, 0.14),
+      length: randomBetween(7, 25),
+      alpha: randomBetween(0.08, 0.32),
+      drift: randomBetween(-0.012, 0.004),
     }));
   }
 
@@ -639,6 +679,7 @@
     gl.uniform2f(uniforms.resolution, window.innerWidth, window.innerHeight);
     createParticles();
     createFlashGrains();
+    createSceneTwoRain();
   }
 
   function getElapsedSeconds(now) {
@@ -843,6 +884,132 @@
     particleContext.restore();
   }
 
+  function drawStationScene(seconds) {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    const { scale, offsetX, offsetY } = getCoverTransform();
+    const clockX = offsetX + 892 * scale;
+    const clockY = offsetY + 329 * scale;
+    const clockRadius = 139 * scale;
+    const visualLevel = Math.min(1, Math.pow(audioEnergy * 0.82 + audioPeak * 0.55, 0.78) * 1.3);
+    const bassLevel = Math.min(1, audioBass * 1.28 + audioBassFlash * 0.9);
+    const breath = 0.5 + 0.5 * Math.sin(seconds * 0.52);
+
+    particleContext.clearRect(0, 0, width, height);
+
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.lineCap = "round";
+    for (const drop of sceneTwoRain) {
+      const travel = (drop.y + seconds * drop.speed) % 1.08;
+      const x = (drop.x + seconds * drop.drift) % 1.06 * width;
+      const y = travel * height;
+      const length = drop.length * (0.62 + drop.depth * 1.2) * scale;
+      particleContext.beginPath();
+      particleContext.moveTo(x, y);
+      particleContext.lineTo(x - length * 0.12, y + length);
+      particleContext.strokeStyle = `rgba(184, 211, 225, ${drop.alpha * (0.34 + drop.depth * 0.5)})`;
+      particleContext.lineWidth = Math.max(0.35, 0.42 + drop.depth * 0.58);
+      particleContext.stroke();
+    }
+    particleContext.restore();
+
+    const ringPoints = 128;
+    const traceClockSignal = (extraScale = 1) => {
+      particleContext.beginPath();
+      for (let index = 0; index <= ringPoints; index += 1) {
+        const ratio = index / ringPoints;
+        const angle = ratio * Math.PI * 2 - Math.PI / 2;
+        const frequencyIndex = audioFrequencyData
+          ? Math.min(audioFrequencyData.length - 1, Math.floor(ratio * 42) + 1)
+          : 0;
+        const previousIndex = Math.max(0, frequencyIndex - 1);
+        const nextIndex = audioFrequencyData
+          ? Math.min(audioFrequencyData.length - 1, frequencyIndex + 1)
+          : 0;
+        const frequency = audioFrequencyData
+          ? (audioFrequencyData[previousIndex] + audioFrequencyData[frequencyIndex] * 2 + audioFrequencyData[nextIndex]) / (4 * 255)
+          : 0;
+        const signal = Math.pow(frequency, 1.55) * (7 + visualLevel * 24) * scale * extraScale;
+        const ambient = (1.2 + breath * 1.4) * scale;
+        const radius = clockRadius + ambient + signal;
+        const x = clockX + Math.cos(angle) * radius;
+        const y = clockY + Math.sin(angle) * radius;
+        if (index === 0) particleContext.moveTo(x, y);
+        else particleContext.lineTo(x, y);
+      }
+      particleContext.closePath();
+    };
+
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.lineJoin = "round";
+    particleContext.lineCap = "round";
+    particleContext.filter = `blur(${Math.max(5, scale * (8 + visualLevel * 10))}px)`;
+    particleContext.strokeStyle = `rgba(112, 180, 220, ${0.1 + visualLevel * 0.28})`;
+    particleContext.lineWidth = Math.max(4, scale * (8 + visualLevel * 9));
+    traceClockSignal(1.16);
+    particleContext.stroke();
+    particleContext.filter = "none";
+    particleContext.strokeStyle = `rgba(235, 215, 177, ${0.34 + visualLevel * 0.54})`;
+    particleContext.lineWidth = Math.max(0.8, scale * (1.15 + visualLevel * 1.65));
+    traceClockSignal(1);
+    particleContext.stroke();
+    particleContext.restore();
+
+    if (bassLevel > 0.08) {
+      particleContext.save();
+      particleContext.globalCompositeOperation = "screen";
+      particleContext.lineCap = "round";
+      for (let wave = 0; wave < 3; wave += 1) {
+        const waveAlpha = Math.max(0, bassLevel - wave * 0.13) * (0.18 - wave * 0.035);
+        const spread = (wave + 1) * 12 * scale;
+        particleContext.beginPath();
+        particleContext.moveTo(clockX - 22 * scale, clockY + clockRadius * 0.92);
+        particleContext.bezierCurveTo(
+          offsetX + 970 * scale - spread,
+          offsetY + 560 * scale,
+          offsetX + 1090 * scale + spread,
+          offsetY + 785 * scale,
+          offsetX + 1210 * scale + spread * 1.8,
+          offsetY + 940 * scale
+        );
+        particleContext.strokeStyle = `rgba(104, 176, 219, ${waveAlpha})`;
+        particleContext.lineWidth = Math.max(0.7, scale * (1.4 + bassLevel * 2.2));
+        particleContext.stroke();
+      }
+      particleContext.restore();
+    }
+
+    const stormPhase = seconds % 17;
+    const distantFlicker = stormPhase > 11.2 && stormPhase < 11.55
+      ? Math.sin((stormPhase - 11.2) / 0.35 * Math.PI) * 0.26
+      : 0;
+    const lightning = Math.min(0.42, distantFlicker + audioBassFlash * 0.16);
+    if (lightning > 0.005) {
+      const strikeX = offsetX + 1518 * scale;
+      const strikeY = offsetY + 242 * scale;
+      const glow = particleContext.createRadialGradient(
+        strikeX,
+        strikeY,
+        0,
+        strikeX,
+        strikeY,
+        260 * scale
+      );
+      glow.addColorStop(0, `rgba(174, 218, 255, ${lightning})`);
+      glow.addColorStop(0.35, `rgba(102, 158, 207, ${lightning * 0.34})`);
+      glow.addColorStop(1, "rgba(64, 105, 153, 0)");
+      particleContext.save();
+      particleContext.globalCompositeOperation = "screen";
+      particleContext.fillStyle = glow;
+      particleContext.fillRect(0, 0, width, height);
+      particleContext.fillStyle = `rgba(110, 170, 218, ${lightning * 0.035})`;
+      particleContext.fillRect(0, 0, width, height);
+      particleContext.restore();
+    }
+  }
+
   function formatTrackTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
     const wholeSeconds = Math.floor(seconds);
@@ -907,12 +1074,76 @@
     gl.uniform1f(uniforms.explosionProgress, explosionProgress);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     updateAudioAnalysis();
-    drawParticles(seconds);
-    drawBassFlash(seconds);
-    drawPortalEqualizer(seconds);
+    if (activeTrack.id === 1) {
+      drawParticles(seconds);
+      drawBassFlash(seconds);
+      drawPortalEqualizer(seconds);
+    } else {
+      drawStationScene(seconds);
+    }
     enforcePreviewLimit();
     updateTrackTimeline();
     animationFrame = requestAnimationFrame((nextNow) => render(gl, nextNow));
+  }
+
+  function closeLibrary() {
+    recordLibrary.classList.add("is-hidden");
+    recordLibrary.setAttribute("aria-hidden", "true");
+    recordLibrary.inert = true;
+    scene.classList.remove("library-open");
+    window.setTimeout(() => collectionTrigger.focus({ preventScroll: true }), 650);
+  }
+
+  function openLibrary() {
+    soundtrack.pause();
+    recordLibrary.inert = false;
+    recordLibrary.removeAttribute("aria-hidden");
+    recordLibrary.classList.remove("is-hidden");
+    scene.classList.add("library-open");
+    const currentChoice = recordChoices.find(
+      (choice) => Number(choice.dataset.trackId) === activeTrack.id
+    );
+    window.setTimeout(() => currentChoice?.focus({ preventScroll: true }), 80);
+  }
+
+  function selectTrack(trackId) {
+    const selectedTrack = TRACKS.find((track) => track.id === trackId);
+    if (!selectedTrack) return;
+
+    soundtrack.pause();
+    soundtrack.currentTime = 0;
+    activeTrack = selectedTrack;
+    hasEnteredScene = true;
+    scene.dataset.track = String(selectedTrack.id);
+    scene.classList.toggle("scene--track-1", selectedTrack.id === 1);
+    scene.classList.toggle("scene--track-2", selectedTrack.id === 2);
+    scene.setAttribute("aria-label", selectedTrack.sceneLabel);
+    trackTitle.textContent = selectedTrack.title;
+    trackArtist.textContent = selectedTrack.artist;
+    trackButton.setAttribute(
+      "aria-label",
+      `Reproducir la canción y alternar pantalla completa. Listening to: ${selectedTrack.title} — ${selectedTrack.artist}`
+    );
+    soundtrack.src = selectedTrack.audio;
+    soundtrack.load();
+    trackSeek.value = "0";
+    trackSeek.style.setProperty("--seek-progress", "0%");
+    trackCurrent.value = "0:00";
+    trackDuration.value = "1:40";
+    startTime = performance.now();
+    document.title = `${selectedTrack.title} — ${selectedTrack.artist}`;
+    window.history.replaceState(null, "", `?track=${selectedTrack.id}`);
+    closeLibrary();
+    playPreview();
+  }
+
+  function handleDocumentKeydown(event) {
+    if (event.key !== "Escape") return;
+    if (recordLibrary.classList.contains("is-hidden")) {
+      openLibrary();
+    } else if (hasEnteredScene) {
+      closeLibrary();
+    }
   }
 
   async function handleFullscreen() {
@@ -981,9 +1212,19 @@
         trackSeek.addEventListener("pointerup", handleSeekEnd);
         trackSeek.addEventListener("pointercancel", handleSeekEnd);
         trackSeek.addEventListener("change", handleSeekEnd);
+        recordChoices.forEach((choice) => {
+          choice.addEventListener("click", () => selectTrack(Number(choice.dataset.trackId)));
+        });
+        collectionTrigger.addEventListener("click", openLibrary);
+        document.addEventListener("keydown", handleDocumentKeydown);
         document.addEventListener("fullscreenchange", handleFullscreenChange);
         window.addEventListener("beforeunload", () => cancelAnimationFrame(animationFrame));
+        scene.classList.add("library-open");
         loadState.classList.add("is-ready");
+        loadState.setAttribute("aria-hidden", "true");
+        window.setTimeout(() => {
+          loadState.hidden = true;
+        }, 950);
         animationFrame = requestAnimationFrame((now) => render(gl, now));
       } catch (error) {
         loadState.textContent = `No se pudo iniciar la animación: ${error.message}`;
