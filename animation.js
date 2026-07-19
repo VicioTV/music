@@ -895,11 +895,38 @@
     const clockX = offsetX + 892 * scale;
     const clockY = offsetY + 329 * scale;
     const clockRadius = 139 * scale;
-    const visualLevel = Math.min(1, Math.pow(audioEnergy * 0.82 + audioPeak * 0.55, 0.78) * 1.3);
+    const visualLevel = Math.min(1, Math.pow(audioEnergy * 0.86 + audioPeak * 0.68, 0.72) * 1.52);
     const bassLevel = Math.min(1, audioBass * 1.28 + audioBassFlash * 0.9);
     const breath = 0.5 + 0.5 * Math.sin(seconds * 0.52);
+    const reactiveColor = getReactiveColor(Math.min(1, visualLevel * 1.08));
 
     particleContext.clearRect(0, 0, width, height);
+
+    const mistY = offsetY + 474 * scale;
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(12, 24 * scale)}px)`;
+    for (let band = 0; band < 3; band += 1) {
+      const drift = Math.sin(seconds * (0.065 + band * 0.018) + band * 2.1) * 74 * scale;
+      const mist = particleContext.createLinearGradient(
+        offsetX + 420 * scale + drift,
+        mistY,
+        offsetX + 1280 * scale + drift,
+        mistY
+      );
+      mist.addColorStop(0, "rgba(104, 134, 148, 0)");
+      mist.addColorStop(0.32, `rgba(132, 157, 168, ${0.026 + band * 0.008})`);
+      mist.addColorStop(0.68, `rgba(104, 139, 156, ${0.022 + band * 0.007})`);
+      mist.addColorStop(1, "rgba(77, 111, 132, 0)");
+      particleContext.fillStyle = mist;
+      particleContext.fillRect(
+        offsetX + 360 * scale + drift,
+        mistY + band * 17 * scale,
+        980 * scale,
+        22 * scale
+      );
+    }
+    particleContext.restore();
 
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
@@ -918,47 +945,168 @@
     }
     particleContext.restore();
 
-    const ringPoints = 128;
-    const traceClockSignal = (extraScale = 1) => {
+    const windowLights = [
+      [130, 252, 88, 126, 0.1],
+      [364, 300, 53, 102, 1.5],
+      [484, 331, 40, 81, 2.7],
+      [558, 350, 30, 66, 3.9],
+      [611, 365, 23, 53, 5.1],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(2, 4.5 * scale)}px)`;
+    for (const [x, y, lightWidth, lightHeight, phase] of windowLights) {
+      const pulse = 0.5 + 0.5 * Math.sin(seconds * 0.47 + phase);
+      const sweep = 0.5 + 0.5 * Math.sin(seconds * 0.18 + phase * 0.6);
+      const glow = particleContext.createLinearGradient(
+        offsetX + (x - lightWidth * 0.5) * scale,
+        0,
+        offsetX + (x + lightWidth * 0.5) * scale,
+        0
+      );
+      glow.addColorStop(0, "rgba(255, 184, 94, 0)");
+      glow.addColorStop(0.48 + sweep * 0.08, `rgba(255, 196, 112, ${0.025 + pulse * 0.055})`);
+      glow.addColorStop(1, "rgba(255, 178, 82, 0)");
+      particleContext.fillStyle = glow;
+      particleContext.fillRect(
+        offsetX + (x - lightWidth * 0.5) * scale,
+        offsetY + (y - lightHeight * 0.5) * scale,
+        lightWidth * scale,
+        lightHeight * scale
+      );
+    }
+    particleContext.restore();
+
+    const ripplePoints = [
+      [652, 658, 0.1, 1],
+      [784, 742, 0.44, 0],
+      [978, 690, 0.73, 1],
+      [1125, 804, 0.28, 0],
+      [1385, 759, 0.58, 0],
+      [1510, 864, 0.9, 0],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.lineWidth = Math.max(0.45, scale * 0.75);
+    for (const [x, y, phase, warm] of ripplePoints) {
+      const cycle = (phase + seconds * 0.115) % 1;
+      const radius = (3 + cycle * 34) * scale;
+      const fade = Math.pow(Math.sin(cycle * Math.PI), 1.3);
       particleContext.beginPath();
-      for (let index = 0; index <= ringPoints; index += 1) {
-        const ratio = index / ringPoints;
-        const angle = ratio * Math.PI * 2 - Math.PI / 2;
-        const frequencyIndex = audioFrequencyData
-          ? Math.min(audioFrequencyData.length - 1, Math.floor(ratio * 42) + 1)
-          : 0;
-        const previousIndex = Math.max(0, frequencyIndex - 1);
-        const nextIndex = audioFrequencyData
-          ? Math.min(audioFrequencyData.length - 1, frequencyIndex + 1)
-          : 0;
-        const frequency = audioFrequencyData
-          ? (audioFrequencyData[previousIndex] + audioFrequencyData[frequencyIndex] * 2 + audioFrequencyData[nextIndex]) / (4 * 255)
-          : 0;
-        const signal = Math.pow(frequency, 1.55) * (7 + visualLevel * 24) * scale * extraScale;
-        const ambient = (1.2 + breath * 1.4) * scale;
-        const radius = clockRadius + ambient + signal;
-        const x = clockX + Math.cos(angle) * radius;
-        const y = clockY + Math.sin(angle) * radius;
-        if (index === 0) particleContext.moveTo(x, y);
-        else particleContext.lineTo(x, y);
-      }
-      particleContext.closePath();
-    };
+      particleContext.ellipse(
+        offsetX + x * scale,
+        offsetY + y * scale,
+        radius,
+        radius * (0.15 + y / IMAGE_HEIGHT * 0.12),
+        -0.035,
+        0,
+        Math.PI * 2
+      );
+      particleContext.strokeStyle = warm
+        ? `rgba(255, 184, 92, ${fade * 0.13})`
+        : `rgba(132, 194, 224, ${fade * 0.12})`;
+      particleContext.stroke();
+    }
+    particleContext.restore();
 
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
-    particleContext.lineJoin = "round";
     particleContext.lineCap = "round";
-    particleContext.filter = `blur(${Math.max(5, scale * (8 + visualLevel * 10))}px)`;
-    particleContext.strokeStyle = `rgba(112, 180, 220, ${0.1 + visualLevel * 0.28})`;
-    particleContext.lineWidth = Math.max(4, scale * (8 + visualLevel * 9));
-    traceClockSignal(1.16);
-    particleContext.stroke();
-    particleContext.filter = "none";
-    particleContext.strokeStyle = `rgba(235, 215, 177, ${0.34 + visualLevel * 0.54})`;
-    particleContext.lineWidth = Math.max(0.8, scale * (1.15 + visualLevel * 1.65));
-    traceClockSignal(1);
-    particleContext.stroke();
+    particleContext.setLineDash([18 * scale, 70 * scale]);
+    particleContext.lineDashOffset = -seconds * 36 * scale;
+    const reflectionPaths = [
+      [[867, 470], [940, 585], [1088, 792], [1244, 940]],
+      [[824, 468], [823, 610], [781, 794], [744, 940]],
+      [[956, 474], [1074, 600], [1322, 790], [1595, 936]],
+    ];
+    reflectionPaths.forEach((pathPoints, index) => {
+      particleContext.beginPath();
+      particleContext.moveTo(offsetX + pathPoints[0][0] * scale, offsetY + pathPoints[0][1] * scale);
+      particleContext.bezierCurveTo(
+        offsetX + pathPoints[1][0] * scale,
+        offsetY + pathPoints[1][1] * scale,
+        offsetX + pathPoints[2][0] * scale,
+        offsetY + pathPoints[2][1] * scale,
+        offsetX + pathPoints[3][0] * scale,
+        offsetY + pathPoints[3][1] * scale
+      );
+      particleContext.strokeStyle = index === 1
+        ? `rgba(255, 190, 104, ${0.055 + bassLevel * 0.085})`
+        : `rgba(116, 187, 222, ${0.04 + bassLevel * 0.075})`;
+      particleContext.lineWidth = Math.max(0.7, scale * (1.1 + bassLevel * 1.4));
+      particleContext.stroke();
+    });
+    particleContext.restore();
+
+    particleContext.save();
+    particleContext.globalCompositeOperation = "lighter";
+    particleContext.filter = `blur(${Math.max(5, scale * (7 + visualLevel * 11))}px)`;
+    const energySectors = 52;
+    for (let sector = 0; sector < energySectors; sector += 1) {
+      const ratio = sector / energySectors;
+      const angle = ratio * Math.PI * 2 - Math.PI / 2;
+      const frequencyIndex = audioFrequencyData
+        ? Math.min(audioFrequencyData.length - 1, Math.floor(ratio * 42) + 1)
+        : 0;
+      let frequency = 0;
+      if (audioFrequencyData) {
+        for (let sample = -2; sample <= 2; sample += 1) {
+          const sampleIndex = Math.max(
+            0,
+            Math.min(audioFrequencyData.length - 1, frequencyIndex + sample)
+          );
+          frequency += audioFrequencyData[sampleIndex] / 255;
+        }
+        frequency /= 5;
+      }
+
+      const frequencyPower = Math.pow(frequency, 1.22);
+      const bassPush = Math.pow(audioBass, 1.18) * 17 * scale;
+      const reach = (5 + breath * 2.4 + frequencyPower * (34 + visualLevel * 58)) * scale;
+      const centerRadius = clockRadius + bassPush + reach * 0.56;
+      const plumeX = clockX + Math.cos(angle) * centerRadius;
+      const plumeY = clockY + Math.sin(angle) * centerRadius;
+      const plumeRadius = (15 + visualLevel * 13 + frequencyPower * 34) * scale;
+      const plume = particleContext.createRadialGradient(
+        plumeX,
+        plumeY,
+        0,
+        plumeX,
+        plumeY,
+        plumeRadius
+      );
+      const plumeAlpha = 0.055 + visualLevel * 0.16 + frequencyPower * 0.24;
+      plume.addColorStop(0, `rgba(${reactiveColor.red}, ${reactiveColor.green}, ${reactiveColor.blue}, ${plumeAlpha})`);
+      plume.addColorStop(0.42, `rgba(${reactiveColor.red}, ${reactiveColor.green}, ${reactiveColor.blue}, ${plumeAlpha * 0.55})`);
+      plume.addColorStop(1, `rgba(${reactiveColor.red}, ${reactiveColor.green}, ${reactiveColor.blue}, 0)`);
+      particleContext.fillStyle = plume;
+      particleContext.beginPath();
+      particleContext.arc(plumeX, plumeY, plumeRadius, 0, Math.PI * 2);
+      particleContext.fill();
+    }
+    particleContext.restore();
+
+    const clockAura = particleContext.createRadialGradient(
+      clockX,
+      clockY,
+      clockRadius * 0.46,
+      clockX,
+      clockY,
+      clockRadius * (1.36 + visualLevel * 0.22)
+    );
+    clockAura.addColorStop(0, "rgba(0, 0, 0, 0)");
+    clockAura.addColorStop(0.58, `rgba(${reactiveColor.red}, ${reactiveColor.green}, ${reactiveColor.blue}, ${0.015 + visualLevel * 0.035})`);
+    clockAura.addColorStop(0.82, `rgba(${reactiveColor.red}, ${reactiveColor.green}, ${reactiveColor.blue}, ${0.055 + visualLevel * 0.11})`);
+    clockAura.addColorStop(1, "rgba(0, 0, 0, 0)");
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.fillStyle = clockAura;
+    particleContext.fillRect(
+      clockX - clockRadius * 1.7,
+      clockY - clockRadius * 1.7,
+      clockRadius * 3.4,
+      clockRadius * 3.4
+    );
     particleContext.restore();
 
     if (bassLevel > 0.08) {
@@ -1012,6 +1160,22 @@
       particleContext.fillRect(0, 0, width, height);
       particleContext.restore();
     }
+
+    const cityLights = [
+      [1110, 514, 0.2], [1165, 488, 1.1], [1212, 541, 2.4], [1278, 505, 3.2],
+      [1342, 548, 4.3], [1408, 510, 5.2], [1462, 566, 6.1], [1550, 526, 7.4],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "screen";
+    for (const [x, y, phase] of cityLights) {
+      const twinkle = Math.pow(0.5 + 0.5 * Math.sin(seconds * 1.35 + phase), 4);
+      const lightRadius = (0.7 + twinkle * 1.7) * scale;
+      particleContext.beginPath();
+      particleContext.fillStyle = `rgba(204, 226, 235, ${0.08 + twinkle * 0.34})`;
+      particleContext.arc(offsetX + x * scale, offsetY + y * scale, lightRadius, 0, Math.PI * 2);
+      particleContext.fill();
+    }
+    particleContext.restore();
   }
 
   function formatTrackTime(seconds) {

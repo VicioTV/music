@@ -43,7 +43,6 @@ body {
 .scene--track-2 .scene__backdrop {
   z-index: 0;
   opacity: 1;
-  animation: station-breath 14s ease-in-out infinite alternate;
 }
 
 canvas {
@@ -433,11 +432,6 @@ canvas {
   font-size: clamp(0.56rem, 0.7vw, 0.64rem);
   line-height: 1.25;
   letter-spacing: 0.07em;
-}
-
-@keyframes station-breath {
-  from { transform: scale(1.015); }
-  to { transform: scale(1.027); }
 }
 
 .track-card {
