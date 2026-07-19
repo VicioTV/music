@@ -201,11 +201,10 @@ canvas {
   width: 124vw;
   max-width: none;
   height: 72vh;
-  object-fit: fill;
+  display: block;
   opacity: 0.2;
   pointer-events: none;
   user-select: none;
-  mix-blend-mode: screen;
   transform: translate(-50%, -50%) rotate(-5deg);
   transform-origin: center;
 }
