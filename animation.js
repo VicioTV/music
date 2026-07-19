@@ -1051,9 +1051,9 @@
         radiusX * breathe * scale,
         radiusY * (0.92 + breathe * 0.08) * scale,
         shade,
-        alpha,
+        Math.min(0.28, alpha * 2.25),
         -0.018,
-        0.42
+        0.58
       );
     }
     particleContext.restore();
@@ -1365,10 +1365,10 @@
       windowCenterX, windowCenterY, 0,
       windowCenterX, windowCenterY, windowRadius
     );
-    windowField.addColorStop(0, `rgba(255, 103, 67, ${windowPower * 0.38 + windowFlash * 0.18})`);
-    windowField.addColorStop(0.24, `rgba(255, 72, 56, ${windowPower * 0.31})`);
-    windowField.addColorStop(0.5, `rgba(235, 35, 49, ${windowPower * 0.2})`);
-    windowField.addColorStop(0.76, `rgba(197, 16, 42, ${windowPower * 0.075})`);
+    windowField.addColorStop(0, `rgba(255, 103, 67, ${windowPower * 0.48 + windowFlash * 0.24})`);
+    windowField.addColorStop(0.24, `rgba(255, 72, 56, ${windowPower * 0.4})`);
+    windowField.addColorStop(0.5, `rgba(235, 35, 49, ${windowPower * 0.27})`);
+    windowField.addColorStop(0.76, `rgba(197, 16, 42, ${windowPower * 0.11})`);
     windowField.addColorStop(1, "rgba(176, 8, 35, 0)");
     particleContext.fillStyle = windowField;
     particleContext.fillRect(
@@ -1450,8 +1450,8 @@
       const gradient = particleContext.createLinearGradient(imageX(x), imageY(top), imageX(x), imageY(bottom));
       gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
       gradient.addColorStop(0.3, warm
-        ? `rgba(255, 149, 76, ${reflectionPulse * 0.19})`
-        : `rgba(103, 198, 235, ${reflectionPulse * 0.17})`);
+        ? `rgba(255, 149, 76, ${reflectionPulse * 0.27})`
+        : `rgba(103, 198, 235, ${reflectionPulse * 0.24})`);
       gradient.addColorStop(0.62, warm
         ? `rgba(255, 79, 62, ${reflectionPulse * 0.07})`
         : `rgba(79, 174, 220, ${reflectionPulse * 0.06})`);
@@ -1482,8 +1482,8 @@
         imageX(endX), imageY(endY), imageX(startX), imageY(startY)
       );
       roadGradient.addColorStop(0, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, 0)`);
-      roadGradient.addColorStop(0.38, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${lanePulse * 0.12})`);
-      roadGradient.addColorStop(0.76, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${lanePulse * 0.21})`);
+      roadGradient.addColorStop(0.38, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${lanePulse * 0.21})`);
+      roadGradient.addColorStop(0.76, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${lanePulse * 0.35})`);
       roadGradient.addColorStop(1, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, 0)`);
       particleContext.fillStyle = roadGradient;
       particleContext.beginPath();
@@ -1507,7 +1507,7 @@
           (10 + travel * 28 + reflectionStrength * 22) * scale,
           (2.5 + travel * 7 + reflectionStrength * 5) * scale,
           laneColor,
-          reflectionStrength * 0.24,
+          reflectionStrength * 0.38,
           laneAngle,
           0.28
         );
@@ -1557,8 +1557,8 @@
         facadeX, facadeY + facadeHeight * 0.55
       );
       facadeGlow.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
-      facadeGlow.addColorStop(0.34, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.045})`);
-      facadeGlow.addColorStop(0.66, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.095})`);
+      facadeGlow.addColorStop(0.34, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.075})`);
+      facadeGlow.addColorStop(0.66, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.16})`);
       facadeGlow.addColorStop(1, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
       particleContext.fillStyle = facadeGlow;
       particleContext.fillRect(
@@ -1573,7 +1573,7 @@
         facadeWidth * (0.82 + flash * 0.5),
         facadeHeight * (0.32 + flash * 0.18),
         lightColor,
-        illumination * 0.2,
+        illumination * 0.3,
         0,
         0.34
       );
@@ -1600,7 +1600,7 @@
         bloomRadius * (1.35 + flash * 0.55),
         bloomRadius * (0.62 + flash * 0.28),
         [255, 31, 51],
-        pulse * 0.42,
+        pulse * 0.6,
         -0.04,
         0.42
       );
@@ -1611,8 +1611,8 @@
         const reflection = particleContext.createLinearGradient(
           imageX(x), imageY(y), imageX(x) - reflectionWidth * 0.45, imageY(y) + reflectionLength
         );
-        reflection.addColorStop(0, `rgba(255, 45, 57, ${pulse * 0.36})`);
-        reflection.addColorStop(0.28, `rgba(255, 34, 51, ${pulse * 0.18})`);
+        reflection.addColorStop(0, `rgba(255, 45, 57, ${pulse * 0.5})`);
+        reflection.addColorStop(0.28, `rgba(255, 34, 51, ${pulse * 0.27})`);
         reflection.addColorStop(1, "rgba(180, 9, 28, 0)");
         particleContext.fillStyle = reflection;
         particleContext.beginPath();
@@ -1642,7 +1642,7 @@
         (12 + cityPulse * 30) * scale,
         (5 + cityPulse * 12) * scale,
         [183, 229, 246],
-        cityPulse * 0.2,
+        cityPulse * 0.31,
         0,
         0.3
       );
@@ -1654,8 +1654,8 @@
       particleContext.save();
       particleContext.globalCompositeOperation = "screen";
       const equalizerWash = particleContext.createLinearGradient(0, height, width, height * 0.28);
-      equalizerWash.addColorStop(0, `rgba(255, 33, 48, ${redSceneFlash * 0.025})`);
-      equalizerWash.addColorStop(0.42, `rgba(231, 30, 49, ${redSceneFlash * 0.014})`);
+      equalizerWash.addColorStop(0, `rgba(255, 33, 48, ${redSceneFlash * 0.042})`);
+      equalizerWash.addColorStop(0.42, `rgba(231, 30, 49, ${redSceneFlash * 0.024})`);
       equalizerWash.addColorStop(1, "rgba(190, 16, 40, 0)");
       particleContext.fillStyle = equalizerWash;
       particleContext.fillRect(0, 0, width, height);
