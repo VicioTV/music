@@ -197,16 +197,16 @@ canvas {
   position: absolute;
   z-index: 1;
   left: 50%;
-  top: 53%;
-  width: min(96rem, 112vw);
+  top: 55%;
+  width: min(112rem, 128vw);
   max-width: none;
   height: auto;
-  opacity: 0.22;
+  opacity: 0.2;
   pointer-events: none;
   user-select: none;
   mix-blend-mode: screen;
   filter: brightness(0.9) contrast(1.08) drop-shadow(0 0 2rem rgb(255 244 226 / 14%));
-  transform: translate(-50%, -50%) rotate(-8deg) scaleX(1.08);
+  transform: translate(-50%, -50%) rotate(-5deg) scaleX(1.34) scaleY(0.82);
   transform-origin: center;
 }
 
@@ -768,10 +768,10 @@ canvas {
   }
 
   .record-library__signature {
-    top: 48%;
-    width: 172vw;
+    top: 50%;
+    width: 205vw;
     opacity: 0.18;
-    transform: translate(-50%, -50%) rotate(-10deg) scaleX(1.04);
+    transform: translate(-50%, -50%) rotate(-7deg) scaleX(1.16) scaleY(0.86);
   }
 
   .record-library__header {
