@@ -388,14 +388,14 @@
 
     const parkEnergyDensity = Math.min(300, Math.round(window.innerWidth / 4.2));
     sceneTwoParkEnergy = Array.from({ length: parkEnergyDensity }, (_, index) => ({
-      x: randomBetween(590, 1635),
-      y: randomBetween(570, 735),
+      angle: randomBetween(0, Math.PI * 2),
+      radiusOffset: randomBetween(-34, 46),
       phase: Math.random(),
-      speed: randomBetween(0.035, 0.095),
-      lift: randomBetween(42, 170),
-      drift: randomBetween(8, 38),
-      size: randomBetween(0.55, 1.85),
-      alpha: randomBetween(0.08, 0.3),
+      speed: randomBetween(0.048, 0.11),
+      lift: randomBetween(3, 24),
+      drift: randomBetween(-0.16, 0.16),
+      size: randomBetween(5, 18),
+      alpha: randomBetween(0.025, 0.11),
       frequencyIndex: 3 + (index * 7) % 40,
     }));
 
@@ -419,26 +419,16 @@
       [1128, 422, 46, 164], [1185, 448, 58, 138], [1450, 444, 62, 150],
       [1524, 420, 54, 176], [1590, 452, 58, 138],
     ];
-    sceneTwoBuildingLights = buildingShapes.flatMap(([x, y, buildingWidth, buildingHeight], buildingIndex) => {
-      const columns = Math.max(2, Math.floor(buildingWidth / 11));
-      const rows = Math.max(4, Math.floor(buildingHeight / 18));
-      const lights = [];
-      for (let row = 0; row < rows; row += 1) {
-        for (let column = 0; column < columns; column += 1) {
-          if ((row + column + buildingIndex) % 3 === 0 || Math.random() > 0.58) continue;
-          lights.push({
-            x: x + 6 + column * ((buildingWidth - 12) / Math.max(1, columns - 1)),
-            y: y + 9 + row * ((buildingHeight - 18) / Math.max(1, rows - 1)),
-            phase: Math.random() * Math.PI * 2,
-            speed: randomBetween(0.38, 1.15),
-            warmth: Math.random(),
-            size: randomBetween(0.65, 1.45),
-            frequencyIndex: 3 + ((buildingIndex * 5 + column * 3 + row) % 42),
-          });
-        }
-      }
-      return lights;
-    });
+    sceneTwoBuildingLights = buildingShapes.map(([x, y, buildingWidth, buildingHeight], buildingIndex) => ({
+      x: x + buildingWidth * 0.5,
+      y: y + buildingHeight * 0.48,
+      width: buildingWidth,
+      height: buildingHeight,
+      phase: Math.random() * Math.PI * 2,
+      speed: randomBetween(0.38, 0.9),
+      warmth: Math.random(),
+      frequencyIndex: 3 + (buildingIndex * 5) % 42,
+    }));
   }
 
   function getCoverTransform() {
@@ -983,6 +973,23 @@
       }
       return total / samples;
     };
+    const drawSoftEllipse = (x, y, radiusX, radiusY, color, alpha, rotation = 0, innerAlpha = 0.72) => {
+      if (alpha <= 0.001 || radiusX <= 0 || radiusY <= 0) return;
+      particleContext.save();
+      particleContext.translate(x, y);
+      particleContext.rotate(rotation);
+      particleContext.scale(1, radiusY / radiusX);
+      const bloom = particleContext.createRadialGradient(0, 0, 0, 0, 0, radiusX);
+      bloom.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha * innerAlpha})`);
+      bloom.addColorStop(0.3, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha * 0.46})`);
+      bloom.addColorStop(0.68, `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha * 0.12})`);
+      bloom.addColorStop(1, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0)`);
+      particleContext.fillStyle = bloom;
+      particleContext.beginPath();
+      particleContext.arc(0, 0, radiusX, 0, Math.PI * 2);
+      particleContext.fill();
+      particleContext.restore();
+    };
 
     particleContext.clearRect(0, 0, width, height);
 
@@ -1153,68 +1160,69 @@
     }
     particleContext.restore();
 
-    const parkZones = [
-      [710, 615, 5], [890, 642, 12], [1080, 632, 19], [1260, 646, 27], [1450, 625, 35],
-    ];
+    const parkCenterX = imageX(1110);
+    const parkCenterY = imageY(642);
+    const parkPower = Math.min(1, Math.pow(getFrequencyLevel(5, 5), 0.8) * 0.72 + bassLevel * 0.58);
     particleContext.save();
     particleContext.globalCompositeOperation = "lighter";
-    particleContext.filter = `blur(${Math.max(7, 11 * scale)}px)`;
-    for (let zoneIndex = 0; zoneIndex < parkZones.length; zoneIndex += 1) {
-      const [x, y, frequencyIndex] = parkZones[zoneIndex];
-      const frequency = Math.pow(getFrequencyLevel(frequencyIndex, 3), 0.92);
-      const zonePulse = Math.min(1, frequency * 0.82 + visualLevel * 0.22 + bassLevel * 0.18);
-      const radiusX = (120 + zonePulse * 75) * scale;
-      const radiusY = (34 + zonePulse * 25) * scale;
-      const glow = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), radiusX);
-      glow.addColorStop(0, `rgba(89, 255, 191, ${0.018 + zonePulse * 0.11})`);
-      glow.addColorStop(0.42, `rgba(39, 198, 181, ${zonePulse * 0.055})`);
-      glow.addColorStop(1, "rgba(22, 112, 103, 0)");
-      particleContext.fillStyle = glow;
+    particleContext.filter = `blur(${Math.max(9, (13 + parkPower * 9) * scale)}px)`;
+    drawSoftEllipse(
+      parkCenterX,
+      parkCenterY,
+      (360 + parkPower * 150) * scale,
+      (62 + parkPower * 34) * scale,
+      [62, 224, 177],
+      0.025 + parkPower * 0.11,
+      -0.015,
+      0.5
+    );
+
+    for (let waveIndex = 0; waveIndex < 3; waveIndex += 1) {
+      const cycle = (seconds * (0.052 + waveIndex * 0.004) + waveIndex * 0.31) % 1;
+      const frequency = Math.pow(getFrequencyLevel(4 + waveIndex * 8, 4), 0.86);
+      const edge = 0.14 + cycle * 0.79;
+      const softStart = Math.max(0, edge - 0.115);
+      const coreStart = Math.max(softStart + 0.01, edge - 0.035);
+      const coreEnd = Math.min(0.985, edge + 0.026);
+      const softEnd = Math.min(1, edge + 0.13);
+      const waveAlpha = Math.sin(cycle * Math.PI) * (0.045 + frequency * 0.17 + bassLevel * 0.055);
+      particleContext.save();
+      particleContext.translate(parkCenterX, parkCenterY);
+      particleContext.scale(1, 0.17);
+      const wave = particleContext.createRadialGradient(0, 0, 0, 0, 0, 650 * scale);
+      wave.addColorStop(0, "rgba(47, 196, 154, 0)");
+      wave.addColorStop(softStart, "rgba(47, 196, 154, 0)");
+      wave.addColorStop(coreStart, `rgba(82, 235, 190, ${waveAlpha * 0.42})`);
+      wave.addColorStop(coreEnd, `rgba(137, 255, 213, ${waveAlpha})`);
+      wave.addColorStop(softEnd, "rgba(43, 177, 148, 0)");
+      wave.addColorStop(1, "rgba(43, 177, 148, 0)");
+      particleContext.fillStyle = wave;
       particleContext.beginPath();
-      particleContext.ellipse(imageX(x), imageY(y), radiusX, radiusY, -0.015, 0, Math.PI * 2);
+      particleContext.arc(0, 0, 650 * scale, 0, Math.PI * 2);
       particleContext.fill();
+      particleContext.restore();
     }
     particleContext.restore();
 
     particleContext.save();
-    particleContext.globalCompositeOperation = "lighter";
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(2.2, 4.5 * scale)}px)`;
     for (const mote of sceneTwoParkEnergy) {
-      const cycle = (mote.phase + seconds * mote.speed * (1 + bassLevel * 0.8)) % 1;
+      const cycle = (mote.phase + seconds * mote.speed * (1 + bassLevel * 0.72)) % 1;
       const frequency = getFrequencyLevel(mote.frequencyIndex, 2);
-      const liftFade = Math.pow(Math.sin(cycle * Math.PI), 0.72);
-      const x = mote.x + Math.sin(cycle * Math.PI * 2 + mote.phase * 8) * mote.drift;
-      const y = mote.y - cycle * mote.lift * (0.76 + visualLevel * 0.34);
-      const radius = mote.size * (0.58 + frequency * 1.2) * scale;
-      const alpha = mote.alpha * liftFade * (0.34 + frequency * 0.94 + bassLevel * 0.2);
-      const green = Math.round(202 + frequency * 42);
-      const blue = Math.round(166 + frequency * 67);
-      particleContext.beginPath();
-      particleContext.fillStyle = `rgba(101, ${green}, ${blue}, ${alpha})`;
-      particleContext.arc(imageX(x), imageY(y), Math.max(0.45, radius), 0, Math.PI * 2);
-      particleContext.fill();
-      if (frequency > 0.46 && mote.size > 1.25) {
-        const haloRadius = radius * 5;
-        const halo = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), haloRadius);
-        halo.addColorStop(0, `rgba(74, 239, 205, ${alpha * 0.24})`);
-        halo.addColorStop(1, "rgba(45, 180, 170, 0)");
-        particleContext.fillStyle = halo;
-        particleContext.fillRect(imageX(x) - haloRadius, imageY(y) - haloRadius, haloRadius * 2, haloRadius * 2);
-      }
-    }
-
-    for (let ringIndex = 0; ringIndex < 4; ringIndex += 1) {
-      const cycle = (seconds * (0.075 + ringIndex * 0.006) + ringIndex * 0.23) % 1;
-      const ringFrequency = getFrequencyLevel(5 + ringIndex * 9, 3);
-      const ringAlpha = Math.sin(cycle * Math.PI) * (0.025 + ringFrequency * 0.11);
-      particleContext.beginPath();
-      particleContext.ellipse(
-        imageX(1110), imageY(642),
-        (100 + cycle * 520) * scale, (15 + cycle * 82) * scale,
-        -0.015, 0, Math.PI * 2
-      );
-      particleContext.strokeStyle = `rgba(84, 239, 205, ${ringAlpha})`;
-      particleContext.lineWidth = Math.max(0.5, (0.7 + ringFrequency * 1.4) * scale);
-      particleContext.stroke();
+      const angle = mote.angle + cycle * mote.drift;
+      const distance = 38 + cycle * 590 + mote.radiusOffset;
+      const x = 1110 + Math.cos(angle) * distance;
+      const y = 642 + Math.sin(angle) * distance * 0.17 - Math.sin(cycle * Math.PI) * mote.lift;
+      const life = Math.pow(Math.sin(cycle * Math.PI), 0.68);
+      const radius = mote.size * (0.7 + frequency * 0.85) * scale;
+      const alpha = mote.alpha * life * (0.42 + frequency * 0.9 + parkPower * 0.36);
+      const dust = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), radius);
+      dust.addColorStop(0, `rgba(124, 215, 178, ${alpha * 0.58})`);
+      dust.addColorStop(0.42, `rgba(72, 169, 139, ${alpha * 0.26})`);
+      dust.addColorStop(1, "rgba(41, 111, 91, 0)");
+      particleContext.fillStyle = dust;
+      particleContext.fillRect(imageX(x) - radius, imageY(y) - radius, radius * 2, radius * 2);
     }
     particleContext.restore();
 
@@ -1303,46 +1311,45 @@
     particleContext.fillRect(imageX(-100), imageY(145), 700 * scale, 690 * scale);
     particleContext.restore();
 
+    const windowLow = Math.pow(getFrequencyLevel(4, 4), 0.78);
+    const windowMid = Math.pow(getFrequencyLevel(17, 6), 0.84);
+    const windowHigh = Math.pow(getFrequencyLevel(34, 6), 0.9);
+    const windowPower = Math.min(1, windowLow * 0.5 + windowMid * 0.34 + windowHigh * 0.18 + bassLevel * 0.34);
+    const windowFlash = Math.min(1, Math.pow(windowLow, 1.65) * 0.82 + audioBassFlash * 0.72);
     particleContext.save();
     particleContext.globalCompositeOperation = "lighter";
-    particleContext.filter = `blur(${Math.max(11, (14 + visualLevel * 15) * scale)}px)`;
-    const windowSectors = 42;
-    for (let sector = 0; sector < windowSectors; sector += 1) {
-      const ratio = sector / windowSectors;
-      const angle = ratio * Math.PI * 2 - Math.PI / 2;
-      const frequencyIndex = audioFrequencyData
-        ? Math.min(audioFrequencyData.length - 1, 1 + Math.floor(sector / windowSectors * 43))
-        : 0;
-      let frequency = 0;
-      if (audioFrequencyData) {
-        for (let sample = -2; sample <= 2; sample += 1) {
-          const sampleIndex = Math.max(0, Math.min(audioFrequencyData.length - 1, frequencyIndex + sample));
-          frequency += audioFrequencyData[sampleIndex] / 255;
-        }
-        frequency /= 5;
-      }
-      const frequencyPower = Math.pow(frequency, 1.12);
-      const redIntensity = Math.min(1, frequencyPower * 0.82 + visualLevel * 0.58);
-      const color = {
-        red: 255,
-        green: Math.round(132 - redIntensity * 78),
-        blue: Math.round(42 + redIntensity * 28),
-      };
-      const inwardPull = 1 - frequencyPower * 0.16;
-      const plumeX = imageX(242 + Math.cos(angle) * 154 * inwardPull);
-      const plumeY = imageY(488 + Math.sin(angle) * 202 * inwardPull);
-      const plumeRadius = (28 + visualLevel * 18 + frequencyPower * 48) * scale;
-      const plumeAlpha = 0.028 + visualLevel * 0.095 + frequencyPower * 0.2;
-      const plume = particleContext.createRadialGradient(
-        plumeX, plumeY, 0, plumeX, plumeY, plumeRadius
+    particleContext.filter = `blur(${Math.max(13, (17 + windowPower * 20) * scale)}px)`;
+    const windowCenterX = imageX(242);
+    const windowCenterY = imageY(475);
+    const windowRadius = (178 + windowPower * 125 + windowFlash * 42) * scale;
+    const windowField = particleContext.createRadialGradient(
+      windowCenterX, windowCenterY, 0,
+      windowCenterX, windowCenterY, windowRadius
+    );
+    windowField.addColorStop(0, `rgba(255, 103, 67, ${0.13 + windowPower * 0.24 + windowFlash * 0.12})`);
+    windowField.addColorStop(0.24, `rgba(255, 72, 56, ${0.105 + windowPower * 0.2})`);
+    windowField.addColorStop(0.5, `rgba(235, 35, 49, ${0.055 + windowPower * 0.13})`);
+    windowField.addColorStop(0.76, `rgba(197, 16, 42, ${0.018 + windowPower * 0.055})`);
+    windowField.addColorStop(1, "rgba(176, 8, 35, 0)");
+    particleContext.fillStyle = windowField;
+    particleContext.fillRect(
+      windowCenterX - windowRadius,
+      windowCenterY - windowRadius,
+      windowRadius * 2,
+      windowRadius * 2
+    );
+
+    if (windowFlash > 0.08) {
+      drawSoftEllipse(
+        windowCenterX,
+        windowCenterY + 22 * scale,
+        (235 + windowFlash * 120) * scale,
+        (190 + windowFlash * 82) * scale,
+        [255, 46, 47],
+        windowFlash * 0.15,
+        -0.05,
+        0.38
       );
-      plume.addColorStop(0, `rgba(${color.red}, ${color.green}, ${color.blue}, ${plumeAlpha})`);
-      plume.addColorStop(0.38, `rgba(${color.red}, ${color.green}, ${color.blue}, ${plumeAlpha * 0.52})`);
-      plume.addColorStop(1, `rgba(${color.red}, ${color.green}, ${color.blue}, 0)`);
-      particleContext.fillStyle = plume;
-      particleContext.beginPath();
-      particleContext.arc(plumeX, plumeY, plumeRadius, 0, Math.PI * 2);
-      particleContext.fill();
     }
     particleContext.restore();
 
@@ -1398,16 +1405,23 @@
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
     particleContext.filter = `blur(${Math.max(1, 2.4 * scale)}px)`;
-    for (const [x, top, bottom, streakWidth, warm] of reflectionStreaks) {
+    for (let reflectionIndex = 0; reflectionIndex < reflectionStreaks.length; reflectionIndex += 1) {
+      const [x, top, bottom, streakWidth, warm] = reflectionStreaks[reflectionIndex];
       const shimmer = 0.5 + 0.5 * Math.sin(seconds * (0.72 + x * 0.0008) + x * 0.03);
+      const reflectionFrequency = Math.pow(getFrequencyLevel(4 + reflectionIndex * 7, 3), 0.86);
+      const reflectionPulse = Math.min(1, reflectionFrequency * 0.78 + shimmer * 0.14 + bassLevel * 0.18);
       const gradient = particleContext.createLinearGradient(imageX(x), imageY(top), imageX(x), imageY(bottom));
       gradient.addColorStop(0, "rgba(255, 255, 255, 0)");
       gradient.addColorStop(0.3, warm
-        ? `rgba(255, 170, 83, ${0.018 + shimmer * 0.05})`
-        : `rgba(111, 190, 230, ${0.014 + shimmer * 0.045})`);
+        ? `rgba(255, 149, 76, ${0.024 + reflectionPulse * 0.14})`
+        : `rgba(103, 198, 235, ${0.02 + reflectionPulse * 0.12})`);
+      gradient.addColorStop(0.62, warm
+        ? `rgba(255, 79, 62, ${reflectionPulse * 0.07})`
+        : `rgba(79, 174, 220, ${reflectionPulse * 0.06})`);
       gradient.addColorStop(1, "rgba(255, 255, 255, 0)");
       particleContext.fillStyle = gradient;
-      particleContext.fillRect(imageX(x) - streakWidth * scale * 0.5, imageY(top), streakWidth * scale, (bottom - top) * scale);
+      const reactiveWidth = streakWidth * (0.72 + reflectionPulse * 0.85) * scale;
+      particleContext.fillRect(imageX(x) - reactiveWidth * 0.5, imageY(top), reactiveWidth, (bottom - top) * scale);
     }
     particleContext.restore();
 
@@ -1418,32 +1432,48 @@
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "lighter";
+    particleContext.filter = `blur(${Math.max(4, 7.5 * scale)}px)`;
     for (let pathIndex = 0; pathIndex < roadLights.length; pathIndex += 1) {
       const [startX, startY, endX, endY, phase] = roadLights[pathIndex];
-      for (let light = 0; light < 7; light += 1) {
-        const travel = (phase + light / 7 + seconds * 0.065) % 1;
+      const isRedLane = pathIndex !== 1;
+      const laneColor = isRedLane ? [255, 35, 58] : [94, 207, 255];
+      const laneFrequency = Math.pow(getFrequencyLevel(3 + pathIndex * 12, 4), 0.82);
+      const lanePulse = Math.min(1, laneFrequency * 0.78 + (isRedLane ? bassLevel * 0.62 : visualLevel * 0.28));
+      const bottomWidth = (12 + lanePulse * 24) * scale;
+      const topWidth = (2.2 + lanePulse * 5) * scale;
+      const roadGradient = particleContext.createLinearGradient(
+        imageX(endX), imageY(endY), imageX(startX), imageY(startY)
+      );
+      roadGradient.addColorStop(0, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, 0)`);
+      roadGradient.addColorStop(0.38, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${0.025 + lanePulse * 0.085})`);
+      roadGradient.addColorStop(0.76, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, ${0.045 + lanePulse * 0.14})`);
+      roadGradient.addColorStop(1, `rgba(${laneColor[0]}, ${laneColor[1]}, ${laneColor[2]}, 0)`);
+      particleContext.fillStyle = roadGradient;
+      particleContext.beginPath();
+      particleContext.moveTo(imageX(endX) - topWidth, imageY(endY));
+      particleContext.lineTo(imageX(startX) - bottomWidth, imageY(startY));
+      particleContext.lineTo(imageX(startX) + bottomWidth, imageY(startY));
+      particleContext.lineTo(imageX(endX) + topWidth, imageY(endY));
+      particleContext.closePath();
+      particleContext.fill();
+
+      const laneAngle = Math.atan2(imageY(startY) - imageY(endY), imageX(startX) - imageX(endX));
+      for (let light = 0; light < 4; light += 1) {
+        const travel = (phase + light / 4 + seconds * (0.075 + lanePulse * 0.035)) % 1;
         const x = startX + (endX - startX) * travel;
         const y = startY + (endY - startY) * travel;
-        const isRed = light % 3 === 0;
-        const roadFrequency = Math.pow(getFrequencyLevel(3 + ((pathIndex * 9 + light * 4) % 38), 2), 0.9);
-        const roadPulse = Math.min(1, roadFrequency * 0.82 + (isRed ? bassLevel * 0.62 : visualLevel * 0.2));
-        const radius = (0.6 + travel * 1.5 + roadPulse * 2.6) * scale;
-        if (roadPulse > 0.12) {
-          const haloRadius = radius * (2.6 + roadPulse * 2.2);
-          const halo = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), haloRadius);
-          halo.addColorStop(0, isRed
-            ? `rgba(255, 36, 62, ${roadPulse * 0.28})`
-            : `rgba(82, 205, 255, ${roadPulse * 0.18})`);
-          halo.addColorStop(1, "rgba(0, 0, 0, 0)");
-          particleContext.fillStyle = halo;
-          particleContext.fillRect(imageX(x) - haloRadius, imageY(y) - haloRadius, haloRadius * 2, haloRadius * 2);
-        }
-        particleContext.beginPath();
-        particleContext.fillStyle = isRed
-          ? `rgba(255, 56, 76, ${0.13 + travel * 0.26 + roadPulse * 0.52})`
-          : `rgba(101, 215, 255, ${0.09 + travel * 0.24 + roadPulse * 0.35})`;
-        particleContext.arc(imageX(x), imageY(y), radius, 0, Math.PI * 2);
-        particleContext.fill();
+        const localFrequency = Math.pow(getFrequencyLevel(4 + ((pathIndex * 11 + light * 7) % 38), 3), 0.88);
+        const reflectionStrength = Math.min(1, localFrequency * 0.72 + lanePulse * 0.52);
+        drawSoftEllipse(
+          imageX(x),
+          imageY(y),
+          (10 + travel * 28 + reflectionStrength * 22) * scale,
+          (2.5 + travel * 7 + reflectionStrength * 5) * scale,
+          laneColor,
+          0.035 + reflectionStrength * 0.17,
+          laneAngle,
+          0.28
+        );
       }
     }
     particleContext.restore();
@@ -1468,30 +1498,49 @@
     particleContext.restore();
 
     particleContext.save();
-    particleContext.globalCompositeOperation = "lighter";
-    for (const light of sceneTwoBuildingLights) {
-      const wave = 0.5 + 0.5 * Math.sin(seconds * light.speed + light.phase);
-      const frequency = Math.pow(getFrequencyLevel(light.frequencyIndex, 2), 1.04);
-      const illumination = Math.min(1, 0.08 + Math.pow(wave, 3.2) * 0.14 + frequency * 0.76 + bassLevel * 0.12);
-      const lightX = imageX(light.x);
-      const lightY = imageY(light.y);
-      const lightColor = light.warmth > 0.68
-        ? [255, 178, 92]
-        : light.warmth < 0.16
-          ? [255, 91, 118]
-          : [117, 216, 255];
-      particleContext.beginPath();
-      particleContext.fillStyle = `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${0.025 + illumination * 0.48})`;
-      particleContext.arc(lightX, lightY, light.size * (0.55 + illumination * 1.45) * scale, 0, Math.PI * 2);
-      particleContext.fill();
-      if (illumination > 0.42) {
-        const haloRadius = light.size * (3.2 + illumination * 4.6) * scale;
-        const halo = particleContext.createRadialGradient(lightX, lightY, 0, lightX, lightY, haloRadius);
-        halo.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.16})`);
-        halo.addColorStop(1, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
-        particleContext.fillStyle = halo;
-        particleContext.fillRect(lightX - haloRadius, lightY - haloRadius, haloRadius * 2, haloRadius * 2);
-      }
+    particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(3.5, 6.5 * scale)}px)`;
+    for (let buildingIndex = 0; buildingIndex < sceneTwoBuildingLights.length; buildingIndex += 1) {
+      const building = sceneTwoBuildingLights[buildingIndex];
+      const frequency = Math.pow(getFrequencyLevel(building.frequencyIndex, 3), 0.86);
+      const flash = Math.pow(frequency, 2.25);
+      const breath = 0.5 + 0.5 * Math.sin(seconds * building.speed + building.phase);
+      const illumination = Math.min(1, frequency * 0.74 + flash * 0.32 + breath * 0.08 + bassLevel * 0.12);
+      const redFacade = buildingIndex % 4 === 1 || buildingIndex % 7 === 0;
+      const lightColor = redFacade
+        ? [255, 53, 69]
+        : building.warmth > 0.62
+          ? [255, 184, 102]
+          : [121, 213, 245];
+      const facadeX = imageX(building.x);
+      const facadeY = imageY(building.y);
+      const facadeWidth = building.width * scale;
+      const facadeHeight = building.height * scale;
+      const facadeGlow = particleContext.createLinearGradient(
+        facadeX, facadeY - facadeHeight * 0.55,
+        facadeX, facadeY + facadeHeight * 0.55
+      );
+      facadeGlow.addColorStop(0, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
+      facadeGlow.addColorStop(0.34, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.045})`);
+      facadeGlow.addColorStop(0.66, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, ${illumination * 0.095})`);
+      facadeGlow.addColorStop(1, `rgba(${lightColor[0]}, ${lightColor[1]}, ${lightColor[2]}, 0)`);
+      particleContext.fillStyle = facadeGlow;
+      particleContext.fillRect(
+        facadeX - facadeWidth * 0.72,
+        facadeY - facadeHeight * 0.62,
+        facadeWidth * 1.44,
+        facadeHeight * 1.24
+      );
+      drawSoftEllipse(
+        facadeX,
+        facadeY + facadeHeight * 0.08,
+        facadeWidth * (0.82 + flash * 0.5),
+        facadeHeight * (0.32 + flash * 0.18),
+        lightColor,
+        0.018 + illumination * 0.13,
+        0,
+        0.34
+      );
     }
     particleContext.restore();
 
@@ -1502,18 +1551,41 @@
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "lighter";
-    particleContext.filter = `blur(${Math.max(1.4, 2.2 * scale)}px)`;
-    for (const [x, y, frequencyIndex, emphasis] of reactiveRedLights) {
+    particleContext.filter = `blur(${Math.max(4.5, 8 * scale)}px)`;
+    for (let redIndex = 0; redIndex < reactiveRedLights.length; redIndex += 1) {
+      const [x, y, frequencyIndex, emphasis] = reactiveRedLights[redIndex];
       const frequency = Math.pow(getFrequencyLevel(frequencyIndex, 2), 0.78);
-      const pulse = Math.min(1, frequency * 0.82 + bassLevel * 0.52);
-      const radius = (3.4 + pulse * 15 * emphasis) * scale;
-      const beacon = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), radius);
-      beacon.addColorStop(0, `rgba(255, 232, 203, ${0.24 + pulse * 0.62})`);
-      beacon.addColorStop(0.12, `rgba(255, 38, 56, ${0.18 + pulse * 0.54})`);
-      beacon.addColorStop(0.48, `rgba(220, 12, 42, ${pulse * 0.2})`);
-      beacon.addColorStop(1, "rgba(190, 0, 36, 0)");
-      particleContext.fillStyle = beacon;
-      particleContext.fillRect(imageX(x) - radius, imageY(y) - radius, radius * 2, radius * 2);
+      const flash = Math.pow(frequency, 2.1);
+      const pulse = Math.min(1, frequency * 0.7 + flash * 0.42 + bassLevel * 0.48);
+      const bloomRadius = (12 + pulse * 34 * emphasis) * scale;
+      drawSoftEllipse(
+        imageX(x), imageY(y),
+        bloomRadius * (1.35 + flash * 0.55),
+        bloomRadius * (0.62 + flash * 0.28),
+        [255, 31, 51],
+        0.055 + pulse * 0.29,
+        -0.04,
+        0.42
+      );
+
+      if (redIndex < 2) {
+        const reflectionLength = (118 + redIndex * 54 + pulse * 78) * scale;
+        const reflectionWidth = (8 + pulse * 24) * scale;
+        const reflection = particleContext.createLinearGradient(
+          imageX(x), imageY(y), imageX(x) - reflectionWidth * 0.45, imageY(y) + reflectionLength
+        );
+        reflection.addColorStop(0, `rgba(255, 45, 57, ${0.08 + pulse * 0.25})`);
+        reflection.addColorStop(0.28, `rgba(255, 34, 51, ${pulse * 0.12})`);
+        reflection.addColorStop(1, "rgba(180, 9, 28, 0)");
+        particleContext.fillStyle = reflection;
+        particleContext.beginPath();
+        particleContext.moveTo(imageX(x) - 3 * scale, imageY(y));
+        particleContext.lineTo(imageX(x) - reflectionWidth, imageY(y) + reflectionLength);
+        particleContext.lineTo(imageX(x) + reflectionWidth * 0.35, imageY(y) + reflectionLength);
+        particleContext.lineTo(imageX(x) + 3 * scale, imageY(y));
+        particleContext.closePath();
+        particleContext.fill();
+      }
     }
     particleContext.restore();
 
@@ -1523,16 +1595,21 @@
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
+    particleContext.filter = `blur(${Math.max(3, 5.2 * scale)}px)`;
     for (let cityIndex = 0; cityIndex < cityLights.length; cityIndex += 1) {
       const [x, y, phase] = cityLights[cityIndex];
       const twinkle = Math.pow(0.5 + 0.5 * Math.sin(seconds * 1.28 + phase), 5);
       const frequency = Math.pow(getFrequencyLevel(8 + cityIndex * 4, 2), 0.95);
       const cityPulse = Math.min(1, frequency * 0.88 + twinkle * 0.22);
-      const lightRadius = (0.7 + cityPulse * 3.1) * scale;
-      particleContext.beginPath();
-      particleContext.fillStyle = `rgba(192, 230, 241, ${0.05 + cityPulse * 0.52})`;
-      particleContext.arc(imageX(x), imageY(y), lightRadius, 0, Math.PI * 2);
-      particleContext.fill();
+      drawSoftEllipse(
+        imageX(x), imageY(y),
+        (12 + cityPulse * 30) * scale,
+        (5 + cityPulse * 12) * scale,
+        [183, 229, 246],
+        0.025 + cityPulse * 0.15,
+        0,
+        0.3
+      );
     }
     particleContext.restore();
 
