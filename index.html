@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="dark">
+    <title>El portal — loop de 8 segundos</title>
+    <link rel="stylesheet" href="styles.css?v=20260719-9">
+  </head>
+  <body>
+    <main class="scene" aria-label="Escena cinematográfica de un portal">
+      <canvas id="world" aria-hidden="true"></canvas>
+      <canvas id="particles" aria-hidden="true"></canvas>
+
+      <div class="track-card">
+        <button
+          class="track-card__toggle"
+          id="trackButton"
+          type="button"
+          aria-label="Reproducir la canción y alternar pantalla completa. Listening to: I have to go.. forever - Creador100k"
+          aria-pressed="false"
+        >
+          <span class="track-card__copy">
+            <span class="track-card__label">Listening to:</span>
+            <span class="track-card__title">I have to go.. forever</span>
+            <span class="track-card__artist">Creador100k</span>
+          </span>
+        </button>
+        <div class="track-card__timeline">
+          <input
+            class="track-card__seek"
+            id="trackSeek"
+            type="range"
+            min="0"
+            max="1000"
+            value="0"
+            step="1"
+            aria-label="Posición de la canción"
+          >
+          <div class="track-card__times" aria-hidden="true">
+            <output id="trackCurrent">0:00</output>
+            <output id="trackDuration">1:40</output>
+          </div>
+          <div class="track-card__preview-row">
+            <div class="track-card__preview">Preview</div>
+            <button
+              class="track-card__playback"
+              id="previewPlayback"
+              type="button"
+              aria-label="Reproducir preview"
+              aria-pressed="false"
+            >
+              <span class="track-card__play-icon" aria-hidden="true"></span>
+              <span class="track-card__pause-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <audio id="soundtrack" src="Imagen1.mp3" preload="auto"></audio>
+
+      <div class="load-state" id="loadState" role="status">Preparando el umbral…</div>
+    </main>
+    <script src="animation.js?v=20260719-8"></script>
+  </body>
+</html>
