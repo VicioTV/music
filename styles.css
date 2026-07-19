@@ -458,8 +458,8 @@ canvas {
 }
 
 .scene--track-2 .track-card {
-  left: 53%;
-  top: 77%;
+  left: 24%;
+  top: 84%;
 }
 
 .scene--track-2 .track-card__label,
@@ -774,8 +774,8 @@ canvas {
   }
 
   .scene--track-2 .track-card {
-    left: 50%;
-    top: 78%;
+    left: 30%;
+    top: 84%;
     width: min(19rem, 72vw);
   }
 

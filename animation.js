@@ -64,6 +64,7 @@
   let activeTrack = TRACKS[0];
   let sceneTwoRain = [];
   let sceneTwoRainDrops = [];
+  let sceneTwoParkEnergy = [];
   let sceneTwoDebris = [];
   let sceneTwoBuildingLights = [];
   let hasEnteredScene = false;
@@ -357,34 +358,48 @@
   }
 
   function createSceneTwoRain() {
-    const density = Math.min(260, Math.round(window.innerWidth / 5));
+    const density = Math.min(520, Math.round(window.innerWidth / 3.1));
     sceneTwoRain = Array.from({ length: density }, () => ({
       x: Math.random(),
       y: Math.random(),
       depth: Math.pow(Math.random(), 1.35),
-      speed: randomBetween(0.055, 0.14),
-      length: randomBetween(7, 25),
-      alpha: randomBetween(0.08, 0.32),
-      drift: randomBetween(-0.012, 0.004),
+      speed: randomBetween(0.09, 0.23),
+      size: randomBetween(0.5, 1.7),
+      alpha: randomBetween(0.1, 0.4),
+      drift: randomBetween(-0.014, 0.008),
+      phase: Math.random() * Math.PI * 2,
     }));
 
     const dropDensity = Math.min(
-      760,
-      Math.round((window.innerWidth * window.innerHeight) / 1650)
+      1300,
+      Math.round((window.innerWidth * window.innerHeight) / 900)
     );
     sceneTwoRainDrops = Array.from({ length: dropDensity }, () => ({
       x: Math.random(),
       y: Math.random(),
       depth: Math.pow(Math.random(), 1.5),
-      speed: randomBetween(0.012, 0.048),
+      speed: randomBetween(0.024, 0.09),
       drift: randomBetween(-0.009, 0.012),
-      size: randomBetween(0.35, 1.25),
-      alpha: randomBetween(0.05, 0.24),
+      size: randomBetween(0.42, 1.65),
+      alpha: randomBetween(0.07, 0.34),
       twinkle: randomBetween(0.6, 1.8),
       phase: Math.random() * Math.PI * 2,
     }));
 
-    sceneTwoDebris = Array.from({ length: 22 }, (_, index) => ({
+    const parkEnergyDensity = Math.min(300, Math.round(window.innerWidth / 4.2));
+    sceneTwoParkEnergy = Array.from({ length: parkEnergyDensity }, (_, index) => ({
+      x: randomBetween(590, 1635),
+      y: randomBetween(570, 735),
+      phase: Math.random(),
+      speed: randomBetween(0.035, 0.095),
+      lift: randomBetween(42, 170),
+      drift: randomBetween(8, 38),
+      size: randomBetween(0.55, 1.85),
+      alpha: randomBetween(0.08, 0.3),
+      frequencyIndex: 3 + (index * 7) % 40,
+    }));
+
+    sceneTwoDebris = Array.from({ length: 48 }, (_, index) => ({
       x: randomBetween(130, 1270),
       y: randomBetween(735, 910),
       phase: Math.random(),
@@ -1111,20 +1126,18 @@
 
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
-    particleContext.lineCap = "round";
     for (let dropIndex = 0; dropIndex < sceneTwoRain.length; dropIndex += 1) {
       const drop = sceneTwoRain[dropIndex];
-      const travel = ((drop.y - seconds * drop.speed * 0.34) % 1.08 + 1.08) % 1.08;
+      const gravitySurge = 0.54 + bassLevel * 0.42 + visualLevel * 0.16;
+      const travel = ((drop.y - seconds * drop.speed * gravitySurge) % 1.08 + 1.08) % 1.08;
       const x = ((drop.x + seconds * drop.drift + 1.08) % 1.08) * width;
       const y = travel * height;
-      const length = drop.length * (0.34 + drop.depth * 0.82) * scale;
+      const shimmer = 0.68 + 0.32 * Math.sin(seconds * 2.1 + drop.phase);
+      const radius = Math.max(0.34, drop.size * (0.48 + drop.depth * 0.82) * scale);
       particleContext.beginPath();
-      particleContext.moveTo(x, y);
-      particleContext.lineTo(x + length * (0.11 + drop.depth * 0.09), y - length);
-      particleContext.strokeStyle = `rgba(178, 211, 229, ${drop.alpha * (0.24 + drop.depth * 0.54)})`;
-      particleContext.lineWidth = Math.max(0.28, 0.3 + drop.depth * 0.56);
-      particleContext.stroke();
-
+      particleContext.fillStyle = `rgba(191, 224, 239, ${drop.alpha * shimmer * (0.42 + drop.depth * 0.58)})`;
+      particleContext.ellipse(x, y, radius * 0.55, radius * (1.05 + drop.depth * 0.75), -0.12, 0, Math.PI * 2);
+      particleContext.fill();
     }
 
     for (const drop of sceneTwoRainDrops) {
@@ -1137,6 +1150,71 @@
       particleContext.fillStyle = `rgba(198, 226, 239, ${drop.alpha * shimmer * (0.42 + drop.depth * 0.58)})`;
       particleContext.arc(x, y, radius, 0, Math.PI * 2);
       particleContext.fill();
+    }
+    particleContext.restore();
+
+    const parkZones = [
+      [710, 615, 5], [890, 642, 12], [1080, 632, 19], [1260, 646, 27], [1450, 625, 35],
+    ];
+    particleContext.save();
+    particleContext.globalCompositeOperation = "lighter";
+    particleContext.filter = `blur(${Math.max(7, 11 * scale)}px)`;
+    for (let zoneIndex = 0; zoneIndex < parkZones.length; zoneIndex += 1) {
+      const [x, y, frequencyIndex] = parkZones[zoneIndex];
+      const frequency = Math.pow(getFrequencyLevel(frequencyIndex, 3), 0.92);
+      const zonePulse = Math.min(1, frequency * 0.82 + visualLevel * 0.22 + bassLevel * 0.18);
+      const radiusX = (120 + zonePulse * 75) * scale;
+      const radiusY = (34 + zonePulse * 25) * scale;
+      const glow = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), radiusX);
+      glow.addColorStop(0, `rgba(89, 255, 191, ${0.018 + zonePulse * 0.11})`);
+      glow.addColorStop(0.42, `rgba(39, 198, 181, ${zonePulse * 0.055})`);
+      glow.addColorStop(1, "rgba(22, 112, 103, 0)");
+      particleContext.fillStyle = glow;
+      particleContext.beginPath();
+      particleContext.ellipse(imageX(x), imageY(y), radiusX, radiusY, -0.015, 0, Math.PI * 2);
+      particleContext.fill();
+    }
+    particleContext.restore();
+
+    particleContext.save();
+    particleContext.globalCompositeOperation = "lighter";
+    for (const mote of sceneTwoParkEnergy) {
+      const cycle = (mote.phase + seconds * mote.speed * (1 + bassLevel * 0.8)) % 1;
+      const frequency = getFrequencyLevel(mote.frequencyIndex, 2);
+      const liftFade = Math.pow(Math.sin(cycle * Math.PI), 0.72);
+      const x = mote.x + Math.sin(cycle * Math.PI * 2 + mote.phase * 8) * mote.drift;
+      const y = mote.y - cycle * mote.lift * (0.76 + visualLevel * 0.34);
+      const radius = mote.size * (0.58 + frequency * 1.2) * scale;
+      const alpha = mote.alpha * liftFade * (0.34 + frequency * 0.94 + bassLevel * 0.2);
+      const green = Math.round(202 + frequency * 42);
+      const blue = Math.round(166 + frequency * 67);
+      particleContext.beginPath();
+      particleContext.fillStyle = `rgba(101, ${green}, ${blue}, ${alpha})`;
+      particleContext.arc(imageX(x), imageY(y), Math.max(0.45, radius), 0, Math.PI * 2);
+      particleContext.fill();
+      if (frequency > 0.46 && mote.size > 1.25) {
+        const haloRadius = radius * 5;
+        const halo = particleContext.createRadialGradient(imageX(x), imageY(y), 0, imageX(x), imageY(y), haloRadius);
+        halo.addColorStop(0, `rgba(74, 239, 205, ${alpha * 0.24})`);
+        halo.addColorStop(1, "rgba(45, 180, 170, 0)");
+        particleContext.fillStyle = halo;
+        particleContext.fillRect(imageX(x) - haloRadius, imageY(y) - haloRadius, haloRadius * 2, haloRadius * 2);
+      }
+    }
+
+    for (let ringIndex = 0; ringIndex < 4; ringIndex += 1) {
+      const cycle = (seconds * (0.075 + ringIndex * 0.006) + ringIndex * 0.23) % 1;
+      const ringFrequency = getFrequencyLevel(5 + ringIndex * 9, 3);
+      const ringAlpha = Math.sin(cycle * Math.PI) * (0.025 + ringFrequency * 0.11);
+      particleContext.beginPath();
+      particleContext.ellipse(
+        imageX(1110), imageY(642),
+        (100 + cycle * 520) * scale, (15 + cycle * 82) * scale,
+        -0.015, 0, Math.PI * 2
+      );
+      particleContext.strokeStyle = `rgba(84, 239, 205, ${ringAlpha})`;
+      particleContext.lineWidth = Math.max(0.5, (0.7 + ringFrequency * 1.4) * scale);
+      particleContext.stroke();
     }
     particleContext.restore();
 
