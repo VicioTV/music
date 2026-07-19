@@ -32,14 +32,14 @@ Una figura permanece inmóvil frente a un portal mientras el entorno entero pare
 
 ![Escena de Perfume and Wine 壊さないで](Imagen2.png)
 
-Dos amantes quedan separados en una estación imposible suspendida sobre la ciudad. Él se prepara para partir; ella permanece detrás del vidrio como un recuerdo.
+Dos amantes quedan separados sobre una azotea imposible. Él permanece al borde del edificio; ella continúa en una fiesta, detrás de un ventanal y con una copa de vino en la mano.
 
+- Ventanal convertido en una masa de energía reactiva, radial y desenfocada.
 - Lluvia animada en diferentes planos de profundidad.
-- Reloj-luna convertido en ecualizador circular.
-- Ondas graves desplazándose sobre las vías mojadas.
-- Resplandor localizado del rayo y las nubes.
-- Paleta fría que responde al audio sin perder la luz cálida del reloj.
-- Movimiento atmosférico lento mientras los personajes permanecen inmóviles.
+- Rayos variables y relámpagos generados dinámicamente.
+- Helicóptero con rotor, reflector oscilante y turbulencia atmosférica.
+- Charcos, reflejos, papeles y luces urbanas en movimiento.
+- Vista elevada de una ciudad fluorescente atravesada por un gran parque nocturno.
 
 ## Reproductor
 
