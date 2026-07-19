@@ -46,7 +46,7 @@ Dos amantes quedan separados en una estación imposible suspendida sobre la ciud
 Las dos composiciones comparten:
 
 - Nombre de la canción y artista.
-- Preview limitado a los primeros **1:40**.
+- Ventana de preview propia para cada canción: `0:00–1:40` en la canción 01 y `1:00–2:39` en la canción 02.
 - Reproducción y pausa.
 - Barra de progreso interactiva.
 - Acceso a pantalla completa desde la información de la canción.

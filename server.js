@@ -26,19 +26,67 @@ const server = http.createServer((request, response) => {
     return;
   }
 
-  fs.readFile(absolutePath, (error, file) => {
-    if (error) {
+  fs.stat(absolutePath, (error, stats) => {
+    if (error || !stats.isFile()) {
       response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
       response.end("Archivo no encontrado");
       return;
     }
 
     const contentType = MIME_TYPES[path.extname(absolutePath).toLowerCase()] || "application/octet-stream";
-    response.writeHead(200, {
+    const rangeHeader = request.headers.range;
+    const commonHeaders = {
       "Content-Type": contentType,
       "Cache-Control": "no-cache",
+      "Accept-Ranges": "bytes",
+    };
+
+    if (rangeHeader) {
+      const match = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader);
+      if (!match) {
+        response.writeHead(416, {
+          ...commonHeaders,
+          "Content-Range": `bytes */${stats.size}`,
+        });
+        response.end();
+        return;
+      }
+
+      const requestedStart = match[1] === "" ? null : Number(match[1]);
+      const requestedEnd = match[2] === "" ? null : Number(match[2]);
+      const suffixLength = requestedStart === null ? requestedEnd : null;
+      const start = suffixLength === null
+        ? requestedStart
+        : Math.max(0, stats.size - suffixLength);
+      const end = suffixLength === null
+        ? Math.min(requestedEnd ?? stats.size - 1, stats.size - 1)
+        : stats.size - 1;
+
+      if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || start > end || start >= stats.size) {
+        response.writeHead(416, {
+          ...commonHeaders,
+          "Content-Range": `bytes */${stats.size}`,
+        });
+        response.end();
+        return;
+      }
+
+      response.writeHead(206, {
+        ...commonHeaders,
+        "Content-Length": end - start + 1,
+        "Content-Range": `bytes ${start}-${end}/${stats.size}`,
+      });
+      if (request.method === "HEAD") response.end();
+      else fs.createReadStream(absolutePath, { start, end }).pipe(response);
+      return;
+    }
+
+    response.writeHead(200, {
+      ...commonHeaders,
+      "Content-Length": stats.size,
     });
-    response.end(file);
+    if (request.method === "HEAD") response.end();
+    else fs.createReadStream(absolutePath).pipe(response);
   });
 });
 

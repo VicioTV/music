@@ -30,6 +30,8 @@
       artist: "Creador100k",
       image: "Imagen1.png",
       audio: "Imagen1.mp3",
+      previewStart: 0,
+      previewEnd: 100,
       sceneLabel: "Escena del portal",
     },
     {
@@ -38,6 +40,8 @@
       artist: "Creador100k",
       image: "Imagen2.png",
       audio: "Imagen2.mp3",
+      previewStart: 60,
+      previewEnd: 159,
       sceneLabel: "Escena de la estación nocturna",
     },
   ];
@@ -1017,41 +1021,61 @@
     return `${minutes}:${String(wholeSeconds % 60).padStart(2, "0")}`;
   }
 
-  function getPreviewDuration() {
+  function getPreviewStart() {
+    return activeTrack.previewStart ?? 0;
+  }
+
+  function getPreviewEnd() {
     const duration = soundtrack.duration;
-    if (!Number.isFinite(duration) || duration <= 0) return PREVIEW_SECONDS;
-    return Math.min(duration, PREVIEW_SECONDS);
+    const configuredEnd = activeTrack.previewEnd ?? PREVIEW_SECONDS;
+    if (!Number.isFinite(duration) || duration <= 0) return configuredEnd;
+    return Math.min(duration, configuredEnd);
+  }
+
+  function getPreviewDuration() {
+    return Math.max(0.001, getPreviewEnd() - getPreviewStart());
   }
 
   function enforcePreviewLimit() {
-    const previewDuration = getPreviewDuration();
-    if (soundtrack.currentTime < previewDuration) return;
-    soundtrack.currentTime = 0;
+    const previewStart = getPreviewStart();
+    const previewEnd = getPreviewEnd();
+    if (soundtrack.currentTime < previewStart) {
+      soundtrack.currentTime = previewStart;
+      updateTrackTimeline();
+      return;
+    }
+    if (soundtrack.currentTime < previewEnd) return;
+    soundtrack.currentTime = previewStart;
     trackSeek.value = "0";
     if (!soundtrack.paused) soundtrack.play().catch(() => {});
     updateTrackTimeline();
   }
 
   function updateTrackTimeline() {
+    const previewStart = getPreviewStart();
+    const previewEnd = getPreviewEnd();
     const duration = getPreviewDuration();
     const seekRatio = Number(trackSeek.value) / Number(trackSeek.max);
-    const displayedTime = isSeeking ? seekRatio * duration : soundtrack.currentTime;
-    const progress = Math.min(1, Math.max(0, displayedTime / duration));
+    const displayedTime = isSeeking
+      ? previewStart + seekRatio * duration
+      : Math.min(previewEnd, Math.max(previewStart, soundtrack.currentTime));
+    const progress = Math.min(1, Math.max(0, (displayedTime - previewStart) / duration));
 
     if (!isSeeking) trackSeek.value = String(Math.round(progress * Number(trackSeek.max)));
     trackSeek.style.setProperty("--seek-progress", `${(progress * 100).toFixed(3)}%`);
     trackSeek.setAttribute(
       "aria-valuetext",
-      `${formatTrackTime(displayedTime)} de ${formatTrackTime(duration)}`
+      `${formatTrackTime(displayedTime)} de ${formatTrackTime(previewEnd)}`
     );
     trackCurrent.value = formatTrackTime(displayedTime);
-    trackDuration.value = formatTrackTime(duration);
+    trackDuration.value = formatTrackTime(previewEnd);
   }
 
   function handleSeekInput(event) {
+    const previewStart = getPreviewStart();
     const duration = getPreviewDuration();
     const progress = Number(event.currentTarget.value) / Number(event.currentTarget.max);
-    soundtrack.currentTime = progress * duration;
+    soundtrack.currentTime = previewStart + progress * duration;
     updateTrackTimeline();
   }
 
@@ -1061,6 +1085,15 @@
 
   function handleSeekEnd() {
     isSeeking = false;
+    updateTrackTimeline();
+  }
+
+  function handleSoundtrackMetadata() {
+    const previewStart = getPreviewStart();
+    const previewEnd = getPreviewEnd();
+    if (soundtrack.currentTime < previewStart || soundtrack.currentTime >= previewEnd) {
+      soundtrack.currentTime = previewStart;
+    }
     updateTrackTimeline();
   }
 
@@ -1128,8 +1161,8 @@
     soundtrack.load();
     trackSeek.value = "0";
     trackSeek.style.setProperty("--seek-progress", "0%");
-    trackCurrent.value = "0:00";
-    trackDuration.value = "1:40";
+    trackCurrent.value = formatTrackTime(selectedTrack.previewStart);
+    trackDuration.value = formatTrackTime(selectedTrack.previewEnd);
     startTime = performance.now();
     document.title = `${selectedTrack.title} — ${selectedTrack.artist}`;
     window.history.replaceState(null, "", `?track=${selectedTrack.id}`);
@@ -1155,7 +1188,11 @@
   }
 
   function playPreview() {
-    if (soundtrack.currentTime >= getPreviewDuration()) soundtrack.currentTime = 0;
+    const previewStart = getPreviewStart();
+    const previewEnd = getPreviewEnd();
+    if (soundtrack.currentTime < previewStart || soundtrack.currentTime >= previewEnd) {
+      soundtrack.currentTime = previewStart;
+    }
     initializeAudioAnalysis();
     if (audioContext?.state === "suspended") audioContext.resume().catch(() => {});
     const isFirstStart = soundtrack.currentTime < 0.05;
@@ -1204,7 +1241,7 @@
         previewPlayback.addEventListener("click", handlePreviewPlayback);
         soundtrack.addEventListener("playing", handleSoundtrackPlaying);
         soundtrack.addEventListener("pause", handleSoundtrackPause);
-        soundtrack.addEventListener("loadedmetadata", updateTrackTimeline);
+        soundtrack.addEventListener("loadedmetadata", handleSoundtrackMetadata);
         soundtrack.addEventListener("durationchange", updateTrackTimeline);
         soundtrack.addEventListener("timeupdate", enforcePreviewLimit);
         trackSeek.addEventListener("input", handleSeekInput);
