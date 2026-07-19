@@ -35,44 +35,6 @@ La interfaz muestra:
 
 El ecualizador y varios efectos de iluminación analizan el audio en tiempo real mediante la Web Audio API.
 
-## Ejecutar el proyecto
-
-### Opción rápida en Windows
-
-Con [Node.js](https://nodejs.org/) instalado, ejecutá:
-
-```text
-iniciar-loop.cmd
-```
-
-El archivo inicia el servidor y abre automáticamente:
-
-```text
-http://127.0.0.1:4173
-```
-
-### Desde una terminal
-
-```bash
-node server.js
-```
-
-Después abrí `http://127.0.0.1:4173` en el navegador.
-
-> El proyecto debe abrirse desde el servidor local. Si se abre `index.html` directamente como archivo, el navegador puede bloquear la carga o el análisis del audio con el error “The operation is insecure”.
-
-## Compartir una vista temporal
-
-En VS Code, con el servidor ejecutándose:
-
-1. Abrí la vista **Ports**.
-2. Seleccioná **Forward a Port**.
-3. Ingresá el puerto `4173`.
-4. Cambiá **Port Visibility** a **Public**.
-5. Compartí la URL generada por VS Code.
-
-El servidor y VS Code deben permanecer abiertos mientras se utiliza el enlace.
-
 ## Estructura
 
 ```text
