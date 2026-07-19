@@ -1130,15 +1130,15 @@
     const windGust = 0.5 + 0.5 * Math.sin(windCycle);
     const windFlutter = Math.sin(seconds * 1.28 + Math.sin(seconds * 0.31)) * 0.5 + 0.5;
     const hairAnchors = [
-      [1336, 423, 0.2], [1342, 420, 1.1], [1349, 421, 2.2],
-      [1356, 424, 3.4], [1363, 427, 4.1], [1370, 431, 5.3],
+      [1337, 367, 0.2], [1345, 360, 1.1], [1353, 358, 2.2],
+      [1361, 361, 3.4], [1369, 368, 4.1], [1377, 378, 5.3],
     ];
     particleContext.save();
     particleContext.globalCompositeOperation = "screen";
     particleContext.filter = `blur(${Math.max(0.35, 0.75 * scale)}px)`;
     for (const [anchorX, anchorY, phase] of hairAnchors) {
       const lift = Math.sin(seconds * 1.05 + phase) * 2.4 + windGust * 4.2;
-      const length = 7 + windGust * 10 + Math.sin(seconds * 0.83 + phase) * 2.2;
+      const length = 10 + windGust * 14 + Math.sin(seconds * 0.83 + phase) * 2.6;
       const tailX = anchorX - length;
       const tailY = anchorY - lift;
       const ribbonWidth = (0.65 + windFlutter * 0.75) * scale;
@@ -1157,14 +1157,16 @@
         imageY(anchorY + ribbonWidth)
       );
       particleContext.closePath();
-      particleContext.fillStyle = `rgba(154, 190, 205, ${0.045 + windGust * 0.055})`;
+      particleContext.fillStyle = `rgba(154, 190, 205, ${0.075 + windGust * 0.085})`;
       particleContext.fill();
     }
 
     const coatRibbons = [
+      [1316, 520, 1308, 748, 35, 4.4],
       [1321, 658, 1312, 742, 31, 0.1],
       [1334, 692, 1328, 754, 24, 1.7],
       [1402, 682, 1408, 746, 18, 3.2],
+      [1408, 526, 1418, 744, 27, 5.6],
     ];
     particleContext.filter = `blur(${Math.max(0.7, 1.25 * scale)}px)`;
     for (const [topX, topY, hemX, hemY, reach, phase] of coatRibbons) {
@@ -1176,7 +1178,7 @@
         imageX(topX), imageY(topY), imageX(tailX), imageY(tailY)
       );
       fabric.addColorStop(0, "rgba(109, 143, 158, 0)");
-      fabric.addColorStop(0.58, `rgba(125, 158, 171, ${0.028 + windGust * 0.035})`);
+      fabric.addColorStop(0.58, `rgba(125, 158, 171, ${0.042 + windGust * 0.052})`);
       fabric.addColorStop(1, "rgba(164, 191, 201, 0)");
       particleContext.beginPath();
       particleContext.moveTo(imageX(topX), imageY(topY));
