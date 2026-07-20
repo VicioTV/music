@@ -376,18 +376,6 @@ canvas {
   transform: translate(-50%, -50%);
 }
 
-.record-entry.is-previewing .record-choice__object {
-  filter: drop-shadow(0 1.8rem 1.55rem rgb(0 0 0 / 58%)) drop-shadow(0 0 1.25rem rgb(211 158 86 / 13%));
-}
-
-.record-entry.is-previewing .record-choice:not(:hover):not(:focus-visible) .record-choice__vinyl {
-  animation: record-vinyl-idle 7s linear infinite;
-}
-
-.record-entry.is-previewing:nth-child(2) .record-choice:not(:hover):not(:focus-visible) .record-choice__vinyl {
-  animation-direction: reverse;
-}
-
 .record-choice__object {
   position: relative;
   display: block;

@@ -4,6 +4,8 @@
   const LOOP_SECONDS = 8;
   const EXPLOSION_SECONDS = 16;
   const PREVIEW_SECONDS = 100;
+  const AUDIO_FADE_IN_SECONDS = 1.3;
+  const AUDIO_FADE_OUT_SECONDS = 1.5;
   const IMAGE_WIDTH = 1664;
   const IMAGE_HEIGHT = 935;
   const scene = document.querySelector(".scene");
@@ -76,6 +78,8 @@
   let sceneTwoBuildingLights = [];
   let hasEnteredScene = false;
   let activeLibraryIntro = null;
+  let soundtrackFadeStartedAt = 0;
+  let libraryFadeStartedAt = 0;
   const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const vertexShaderSource = `
@@ -1728,6 +1732,40 @@
     return Math.max(0.001, getPreviewEnd() - getPreviewStart());
   }
 
+  function clampUnit(value) {
+    return Math.min(1, Math.max(0, value));
+  }
+
+  function getAudioEnvelope(currentTime, startTime, endTime, fadeStartedAt, now) {
+    const interactionFade = fadeStartedAt > 0
+      ? clampUnit((now - fadeStartedAt) / 1000 / AUDIO_FADE_IN_SECONDS)
+      : 1;
+    const openingFade = clampUnit((currentTime - startTime) / AUDIO_FADE_IN_SECONDS);
+    const endingFade = clampUnit((endTime - currentTime) / AUDIO_FADE_OUT_SECONDS);
+    return Math.min(interactionFade, openingFade, endingFade);
+  }
+
+  function updateAudioFades(now) {
+    if (!soundtrack.paused) {
+      soundtrack.volume = getAudioEnvelope(
+        soundtrack.currentTime,
+        getPreviewStart(),
+        getPreviewEnd(),
+        soundtrackFadeStartedAt,
+        now
+      );
+    }
+    if (activeLibraryIntro && !libraryPreview.paused) {
+      libraryPreview.volume = getAudioEnvelope(
+        libraryPreview.currentTime,
+        activeLibraryIntro.libraryIntroStart,
+        activeLibraryIntro.libraryIntroEnd,
+        libraryFadeStartedAt,
+        now
+      );
+    }
+  }
+
   function enforcePreviewLimit() {
     const previewStart = getPreviewStart();
     const previewEnd = getPreviewEnd();
@@ -1738,6 +1776,8 @@
     }
     if (soundtrack.currentTime < previewEnd) return;
     soundtrack.currentTime = previewStart;
+    soundtrack.volume = 0;
+    soundtrackFadeStartedAt = performance.now();
     trackSeek.value = "0";
     if (!soundtrack.paused) soundtrack.play().catch(() => {});
     updateTrackTimeline();
@@ -1836,21 +1876,21 @@
     context.restore();
   }
 
-  function drawPortalMiniature(context, width, height, seconds, intensity) {
+  function drawPortalMiniature(context, width, height, seconds) {
     const centerX = width * 0.665;
     const centerY = height * 0.44;
-    const breath = 0.5 + 0.5 * Math.sin(seconds * Math.PI * 0.34);
-    const radiusX = width * (0.137 + breath * 0.009);
-    const radiusY = height * (0.33 + breath * 0.014);
+    const breath = 0.5 + 0.5 * Math.sin(seconds * Math.PI * 0.46);
+    const radiusX = width * (0.13 + breath * 0.019);
+    const radiusY = height * (0.315 + breath * 0.036);
 
     context.save();
     context.globalCompositeOperation = "screen";
     context.translate(centerX, centerY);
     context.scale(1, radiusY / radiusX);
     const portalGlow = context.createRadialGradient(0, 0, radiusX * 0.08, 0, 0, radiusX * 1.35);
-    portalGlow.addColorStop(0, `rgba(255, 245, 211, ${0.16 + breath * 0.12})`);
-    portalGlow.addColorStop(0.45, `rgba(255, 160, 45, ${0.08 + intensity * 0.08})`);
-    portalGlow.addColorStop(0.72, `rgba(255, 106, 18, ${0.16 + breath * 0.09})`);
+    portalGlow.addColorStop(0, `rgba(255, 245, 211, ${0.2 + breath * 0.16})`);
+    portalGlow.addColorStop(0.45, "rgba(255, 160, 45, 0.15)");
+    portalGlow.addColorStop(0.72, `rgba(255, 106, 18, ${0.2 + breath * 0.12})`);
     portalGlow.addColorStop(1, "rgba(255, 91, 6, 0)");
     context.fillStyle = portalGlow;
     context.beginPath();
@@ -1861,8 +1901,8 @@
     context.save();
     context.globalCompositeOperation = "lighter";
     for (let ring = 0; ring < 4; ring += 1) {
-      const rotation = seconds * (0.12 + ring * 0.035) + ring * 1.7;
-      const ringPulse = 1 + Math.sin(seconds * 0.8 + ring * 2.1) * 0.018;
+      const rotation = seconds * (0.24 + ring * 0.055) + ring * 1.7;
+      const ringPulse = 1 + Math.sin(seconds * 1.05 + ring * 2.1) * 0.034;
       context.beginPath();
       context.ellipse(
         centerX,
@@ -1874,11 +1914,11 @@
         rotation + Math.PI * (1.05 + ring * 0.14)
       );
       context.strokeStyle = ring % 2
-        ? `rgba(255, 238, 194, ${0.24 + breath * 0.18})`
-        : `rgba(255, 130, 24, ${0.3 + intensity * 0.16})`;
+        ? `rgba(255, 238, 194, ${0.3 + breath * 0.22})`
+        : "rgba(255, 130, 24, 0.48)";
       context.lineWidth = Math.max(0.7, width * (0.003 + ring * 0.0008));
       context.shadowColor = ring % 2 ? "#fff1c5" : "#ff781b";
-      context.shadowBlur = width * (0.018 + intensity * 0.014);
+      context.shadowBlur = width * 0.033;
       context.stroke();
     }
     context.restore();
@@ -1890,31 +1930,46 @@
     ];
     stonePositions.forEach(([baseX, baseY, size], index) => {
       const depth = 0.35 + miniNoise(index + 17) * 0.65;
-      const orbit = seconds * (0.18 + depth * 0.12) + index * 1.9;
-      const x = width * baseX + Math.cos(orbit) * width * (0.007 + depth * 0.008);
-      const y = height * baseY + Math.sin(orbit * 0.82) * height * (0.009 + depth * 0.012);
-      drawMiniStone(context, x, y, width * size, orbit * 0.72, depth);
+      const phase = (miniNoise(index + 71) + seconds * (0.026 + depth * 0.018)) % 1;
+      const attraction = 0.035 + Math.pow(phase, 1.35) * 0.28;
+      const orbit = seconds * (0.16 + depth * 0.1) + index * 1.9;
+      const startX = width * baseX;
+      const startY = height * baseY;
+      const x = startX + (centerX - startX) * attraction + Math.cos(orbit) * width * (0.006 + depth * 0.006);
+      const y = startY + (centerY - startY) * attraction + Math.sin(orbit * 0.82) * height * (0.007 + depth * 0.009);
+      const resetFade = Math.min(1, Math.sin(phase * Math.PI) * 2.8);
+      context.save();
+      context.globalAlpha = resetFade;
+      drawMiniStone(context, x, y, width * size, orbit * 0.86, depth);
+      context.restore();
     });
 
     context.save();
     context.globalCompositeOperation = "lighter";
-    for (let index = 0; index < 54; index += 1) {
-      const speed = 0.075 + miniNoise(index + 41) * 0.07;
+    for (let index = 0; index < 38; index += 1) {
+      const speed = 0.042 + miniNoise(index + 41) * 0.045;
       const phase = (miniNoise(index + 7) + seconds * speed) % 1;
       const startX = width * (0.04 + miniNoise(index + 83) * 0.92);
       const pull = Math.pow(phase, 1.45);
       const x = startX + (centerX - startX) * pull + Math.sin(index * 4.3 + seconds) * width * 0.008 * (1 - pull);
       const y = height * (0.98 - phase * 0.55) + Math.sin(index * 2.7 + seconds * 1.2) * height * 0.006;
       const fade = Math.sin(phase * Math.PI);
-      const particleRadius = width * (0.0028 + miniNoise(index + 119) * 0.0032) * (0.9 + intensity * 0.3);
-      const isWhite = index % 5 === 0 || index % 11 === 0;
+      const flickerSpeed = 1.2 + miniNoise(index + 151) * 2.1;
+      const innerLight = 0.25 + Math.pow(0.5 + 0.5 * Math.sin(seconds * flickerSpeed + index * 2.3), 2) * 0.75;
+      const particleRadius = width * (0.0032 + miniNoise(index + 119) * 0.0036);
+      const isWhite = index % 9 === 0;
+      context.shadowColor = isWhite ? "#fff4d5" : "#ff8b24";
+      context.shadowBlur = particleRadius * (5 + innerLight * 6);
       context.beginPath();
       context.fillStyle = isWhite
-        ? `rgba(255, 246, 222, ${fade * 0.84})`
-        : `rgba(255, ${142 + Math.round(miniNoise(index) * 68)}, 51, ${fade * 0.78})`;
-      context.shadowColor = isWhite ? "#fff4d5" : "#ff8b24";
-      context.shadowBlur = particleRadius * (4 + intensity * 2);
+        ? `rgba(255, 249, 230, ${fade * innerLight * 0.9})`
+        : `rgba(255, ${128 + Math.round(miniNoise(index) * 66)}, 30, ${fade * innerLight * 0.9})`;
       context.arc(x, y, particleRadius, 0, Math.PI * 2);
+      context.fill();
+      context.shadowBlur = 0;
+      context.beginPath();
+      context.fillStyle = `rgba(255, 249, 220, ${fade * innerLight * 0.82})`;
+      context.arc(x, y, particleRadius * 0.34, 0, Math.PI * 2);
       context.fill();
     }
     context.restore();
@@ -1962,20 +2017,21 @@
     context.restore();
   }
 
-  function drawStormMiniature(context, width, height, seconds, intensity) {
+  function drawStormMiniature(context, width, height, seconds) {
     context.save();
     context.globalCompositeOperation = "screen";
-    for (let index = 0; index < 96; index += 1) {
-      const speed = 0.11 + miniNoise(index + 9) * 0.16;
+    for (let index = 0; index < 54; index += 1) {
+      const speed = 0.028 + miniNoise(index + 9) * 0.038;
       const phase = (miniNoise(index + 51) + seconds * speed) % 1;
-      const x = width * (miniNoise(index + 93) + phase * 0.08) % width;
-      const y = height * (1.05 - phase * 1.12);
-      const radius = width * (0.0019 + miniNoise(index + 133) * 0.0027);
+      const x = width * (miniNoise(index + 93) + Math.sin(seconds * 0.22 + index) * 0.012) % width;
+      const y = height * (1.08 - phase * 1.18);
+      const radius = width * (0.0024 + miniNoise(index + 133) * 0.0032);
+      const glowPulse = 0.45 + 0.55 * Math.pow(0.5 + 0.5 * Math.sin(seconds * (0.6 + miniNoise(index) * 0.8) + index), 2);
       context.beginPath();
-      context.fillStyle = `rgba(192, 229, 248, ${0.18 + miniNoise(index) * 0.38})`;
-      context.shadowColor = "rgba(169, 218, 246, 0.7)";
-      context.shadowBlur = radius * 2.5;
-      context.arc(x, y, radius * (0.85 + intensity * 0.2), 0, Math.PI * 2);
+      context.fillStyle = `rgba(238, 250, 255, ${0.34 + glowPulse * 0.4})`;
+      context.shadowColor = "rgba(207, 239, 255, 0.92)";
+      context.shadowBlur = radius * (3 + glowPulse * 3);
+      context.arc(x, y, radius, 0, Math.PI * 2);
       context.fill();
     }
     context.restore();
@@ -2055,12 +2111,10 @@
     miniSceneCanvases.forEach((canvas) => {
       const prepared = prepareMiniCanvas(canvas);
       if (!prepared) return;
-      const entry = canvas.closest(".record-entry");
-      const intensity = entry?.classList.contains("is-previewing") ? 1 : 0.52;
       if (Number(canvas.dataset.miniScene) === 1) {
-        drawPortalMiniature(prepared.context, prepared.width, prepared.height, timeline, intensity);
+        drawPortalMiniature(prepared.context, prepared.width, prepared.height, timeline);
       } else {
-        drawStormMiniature(prepared.context, prepared.width, prepared.height, timeline, intensity);
+        drawStormMiniature(prepared.context, prepared.width, prepared.height, timeline);
       }
     });
   }
@@ -2083,6 +2137,7 @@
       drawStationScene(seconds);
     }
     drawRecordPreviews(seconds);
+    updateAudioFades(now);
     enforcePreviewLimit();
     updateTrackTimeline();
     animationFrame = requestAnimationFrame((nextNow) => render(gl, nextNow));
@@ -2093,7 +2148,6 @@
       button.classList.remove("is-playing");
       button.setAttribute("aria-pressed", "false");
       button.style.setProperty("--intro-progress", "0%");
-      button.closest(".record-entry")?.classList.remove("is-previewing");
       const track = TRACKS.find((item) => item.id === Number(button.dataset.introTrackId));
       if (track) {
         button.setAttribute(
@@ -2107,6 +2161,7 @@
   function stopLibraryIntro({ resetPosition = true } = {}) {
     const stoppedTrack = activeLibraryIntro;
     libraryPreview.pause();
+    libraryPreview.volume = 0;
     if (resetPosition && stoppedTrack && Number.isFinite(libraryPreview.duration)) {
       libraryPreview.currentTime = stoppedTrack.libraryIntroStart;
     }
@@ -2147,7 +2202,6 @@
     activeButton?.classList.add("is-playing");
     activeButton?.setAttribute("aria-pressed", "true");
     activeButton?.setAttribute("aria-label", `Pausar intro de ${activeLibraryIntro.title}`);
-    activeButton?.closest(".record-entry")?.classList.add("is-previewing");
   }
 
   function toggleLibraryIntro(trackId) {
@@ -2165,6 +2219,8 @@
     const mediaFragment = `${selectedIntro.audio}#t=${selectedIntro.libraryIntroStart},${selectedIntro.libraryIntroEnd}`;
     libraryPreview.src = mediaFragment;
     libraryPreview.load();
+    libraryPreview.volume = 0;
+    libraryFadeStartedAt = performance.now();
     try {
       libraryPreview.currentTime = selectedIntro.libraryIntroStart;
     } catch (_) {
@@ -2251,6 +2307,8 @@
     if (soundtrack.currentTime < previewStart || soundtrack.currentTime >= previewEnd) {
       soundtrack.currentTime = previewStart;
     }
+    soundtrack.volume = 0;
+    soundtrackFadeStartedAt = performance.now();
     initializeAudioAnalysis();
     if (audioContext?.state === "suspended") audioContext.resume().catch(() => {});
     const isFirstStart = soundtrack.currentTime < 0.05;
