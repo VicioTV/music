@@ -196,17 +196,36 @@ canvas {
 .record-library__signature {
   position: absolute;
   z-index: 1;
-  left: clamp(0.8rem, 2vw, 2rem);
-  top: clamp(0.5rem, 1.4vh, 1rem);
+  left: clamp(2rem, 4vw, 4rem);
+  top: clamp(2rem, 4.5vh, 3.5rem);
   width: clamp(10rem, 18vw, 16rem);
-  height: auto;
-  aspect-ratio: 1;
-  display: block;
-  object-fit: contain;
+  display: grid;
+  justify-items: center;
   pointer-events: none;
   user-select: none;
+}
+
+.record-library__signature img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
   transform: rotate(-24deg);
   transform-origin: center;
+}
+
+.record-library__signature span {
+  position: absolute;
+  bottom: 3rem;
+  left: 54%;
+  width: max-content;
+  color: rgb(244 237 225 / 68%);
+  font-family: Cambria, Georgia, "Times New Roman", serif;
+  font-size: clamp(0.62rem, 0.85vw, 0.78rem);
+  line-height: 1.25;
+  text-shadow: 0 0.2rem 0.9rem rgb(0 0 0 / 92%);
+  transform: rotate(-7deg);
 }
 
 .record-library__header,
@@ -264,10 +283,10 @@ canvas {
 
 .record-library__shelf {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
-  gap: clamp(1.5rem, 5vw, 5rem);
-  width: min(68rem, 92vw);
+  gap: clamp(1.25rem, 3vw, 3rem);
+  width: min(78rem, 94vw);
   margin-inline: auto;
 }
 
@@ -366,7 +385,7 @@ canvas {
 
 .record-intro__timeline {
   display: block;
-  width: 100%;
+  width: 50%;
   height: 1px;
   margin-top: 0.22rem;
   background:
@@ -437,6 +456,39 @@ canvas {
   mix-blend-mode: screen;
 }
 
+.record-choice__enter {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  left: 50%;
+  padding: 0.58rem 1rem;
+  color: rgb(250 243 231 / 88%);
+  font-family: "Gill Sans", "Trebuchet MS", sans-serif;
+  font-size: clamp(0.62rem, 0.72vw, 0.72rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgb(5 6 6 / 68%);
+  border: 1px solid rgb(244 232 214 / 36%);
+  border-radius: 999px;
+  box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 42%);
+  transform: translate(-50%, -50%);
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.record-choice:hover .record-choice__enter,
+.record-choice:focus-visible .record-choice__enter {
+  color: #fff7e9;
+  background: rgb(13 11 8 / 82%);
+  border-color: rgb(235 190 120 / 70%);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
 .record-choice__number {
   position: absolute;
   z-index: 3;
@@ -504,6 +556,42 @@ canvas {
 
 .record-choice__label--two {
   background: radial-gradient(circle at 38% 32%, #d2d9d8, #45697a 62%, #182c39);
+}
+
+.record-choice__object--upcoming {
+  width: min(92%, 24rem);
+}
+
+.record-choice__vinyl--upcoming {
+  right: 9%;
+  width: 82%;
+  animation: record-vinyl-idle 72s linear infinite;
+  opacity: 0.72;
+}
+
+.record-choice__label--upcoming {
+  display: grid;
+  place-items: center;
+  color: rgb(241 232 217 / 58%);
+  font-family: Cambria, Georgia, "Times New Roman", serif;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  background: radial-gradient(circle at 38% 32%, #494744, #242526 62%, #101112);
+}
+
+.record-upcoming__details {
+  display: grid;
+  min-height: 2.9rem;
+  place-items: center;
+}
+
+.record-upcoming__title {
+  color: rgb(239 229 214 / 42%);
+  font-family: "Gill Sans", "Trebuchet MS", sans-serif;
+  font-size: clamp(0.68rem, 0.82vw, 0.78rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .record-choice__details {
@@ -898,6 +986,19 @@ canvas {
   pointer-events: none;
 }
 
+@media (max-width: 64rem) and (min-width: 36.01rem) {
+  .record-library__shelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(58rem, 94vw);
+  }
+
+  .record-entry--upcoming {
+    grid-column: 1 / -1;
+    width: calc((100% - clamp(1.25rem, 3vw, 3rem)) / 2);
+    justify-self: center;
+  }
+}
+
 @media (max-width: 36rem) {
   .record-library {
     display: block;
@@ -912,11 +1013,15 @@ canvas {
   }
 
   .record-library__signature {
-    left: 0.35rem;
-    top: 0.55rem;
-    width: 7.5rem;
-    height: auto;
-    transform: rotate(-24deg);
+    left: 1rem;
+    top: 1.5rem;
+    width: 7.75rem;
+  }
+
+  .record-library__signature span {
+    bottom: 1.45rem;
+    left: 47%;
+    font-size: 0.52rem;
   }
 
   .record-library__header {
