@@ -604,12 +604,22 @@ canvas {
 }
 
 .record-choice__title {
+  display: block;
+  width: 100%;
   max-width: 32ch;
+  overflow: hidden;
   color: #f3ebdf;
   font-family: Cambria, Georgia, "Times New Roman", serif;
   font-size: clamp(0.9rem, 1.3vw, 1.1rem);
   font-weight: 700;
   line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-choice--cold + .record-entry__footer .record-choice__title {
+  font-size: clamp(0.72rem, 1vw, 0.9rem);
+  letter-spacing: -0.012em;
 }
 
 .record-choice__meta {
