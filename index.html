@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
     <title>Creador100k — Night Records</title>
-    <link rel="stylesheet" href="styles.css?v=20260720-27">
+    <link rel="stylesheet" href="styles.css?v=20260720-28">
   </head>
   <body>
     <main class="scene scene--track-1" data-track="1" aria-label="Experiencia audiovisual de Creador100k">
@@ -100,22 +100,23 @@
                   <span class="record-choice__number">01</span>
                 </span>
               </span>
-              <span class="record-choice__details">
+            </button>
+            <div class="record-entry__footer">
+              <button
+                class="record-intro"
+                type="button"
+                data-intro-track-id="1"
+                aria-label="Reproducir preview de I have to go… forever, desde 0:39 hasta 1:05"
+                aria-pressed="false"
+              >
+                <span class="record-intro__icon" aria-hidden="true"></span>
+              </button>
+              <div class="record-choice__details">
                 <span class="record-choice__title">I have to go… forever</span>
-                <span class="record-choice__meta">Creador100k · Preview 0:00–1:40</span>
-              </span>
-            </button>
-            <button
-              class="record-intro"
-              type="button"
-              data-intro-track-id="1"
-              aria-label="Reproducir intro de I have to go… forever, desde 0:39 hasta 1:05"
-              aria-pressed="false"
-            >
-              <span class="record-intro__icon" aria-hidden="true"></span>
-              <span class="record-intro__label">Intro</span>
-              <span class="record-intro__time">0:39–1:05</span>
-            </button>
+                <span class="record-choice__meta">Creador100k &middot; Preview</span>
+                <span class="record-intro__timeline" aria-hidden="true"></span>
+              </div>
+            </div>
           </div>
 
           <div class="record-entry">
@@ -136,29 +137,30 @@
                   <span class="record-choice__number">02</span>
                 </span>
               </span>
-              <span class="record-choice__details">
+            </button>
+            <div class="record-entry__footer">
+              <button
+                class="record-intro"
+                type="button"
+                data-intro-track-id="2"
+                aria-label="Reproducir preview de Perfume and Wine 壊さないで, desde 1:19 hasta 1:40"
+                aria-pressed="false"
+              >
+                <span class="record-intro__icon" aria-hidden="true"></span>
+              </button>
+              <div class="record-choice__details">
                 <span class="record-choice__title">Perfume and Wine 壊さないで</span>
-                <span class="record-choice__meta">Creador100k · Preview 1:00–2:39</span>
-              </span>
-            </button>
-            <button
-              class="record-intro"
-              type="button"
-              data-intro-track-id="2"
-              aria-label="Reproducir intro de Perfume and Wine 壊さないで, desde 1:19 hasta 1:40"
-              aria-pressed="false"
-            >
-              <span class="record-intro__icon" aria-hidden="true"></span>
-              <span class="record-intro__label">Intro</span>
-              <span class="record-intro__time">1:19–1:40</span>
-            </button>
+                <span class="record-choice__meta">Creador100k &middot; Preview</span>
+                <span class="record-intro__timeline" aria-hidden="true"></span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <p class="record-library__hint">Intro para escuchar · Portada para entrar · Esc para volver</p>
+        <p class="record-library__hint">Play para escuchar &middot; Portada para entrar &middot; Esc para volver</p>
       </section>
       <audio id="libraryPreview" preload="metadata"></audio>
     </main>
-    <script src="animation.js?v=20260720-26"></script>
+    <script src="animation.js?v=20260720-27"></script>
   </body>
 </html>
