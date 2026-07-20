@@ -2146,12 +2146,12 @@
     libraryPreviewButtons.forEach((button) => {
       button.classList.remove("is-playing");
       button.setAttribute("aria-pressed", "false");
-      button.style.setProperty("--intro-progress", "0%");
+      button.closest(".record-entry")?.style.setProperty("--intro-progress", "0%");
       const track = TRACKS.find((item) => item.id === Number(button.dataset.introTrackId));
       if (track) {
         button.setAttribute(
           "aria-label",
-          `Reproducir intro de ${track.title}, desde ${formatTrackTime(track.libraryIntroStart)} hasta ${formatTrackTime(track.libraryIntroEnd)}`
+          `Reproducir preview de ${track.title}, desde ${formatTrackTime(track.libraryIntroStart)} hasta ${formatTrackTime(track.libraryIntroEnd)}`
         );
       }
     });
@@ -2176,7 +2176,7 @@
     const activeButton = libraryPreviewButtons.find(
       (button) => Number(button.dataset.introTrackId) === activeLibraryIntro.id
     );
-    activeButton?.style.setProperty("--intro-progress", `${(progress * 100).toFixed(2)}%`);
+    activeButton?.closest(".record-entry")?.style.setProperty("--intro-progress", `${(progress * 100).toFixed(2)}%`);
 
     if (libraryPreview.currentTime >= activeLibraryIntro.libraryIntroEnd) {
       stopLibraryIntro();
@@ -2200,7 +2200,7 @@
     );
     activeButton?.classList.add("is-playing");
     activeButton?.setAttribute("aria-pressed", "true");
-    activeButton?.setAttribute("aria-label", `Pausar intro de ${activeLibraryIntro.title}`);
+    activeButton?.setAttribute("aria-label", `Pausar preview de ${activeLibraryIntro.title}`);
   }
 
   function toggleLibraryIntro(trackId) {
