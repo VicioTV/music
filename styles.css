@@ -418,8 +418,9 @@ canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transform: none;
   user-select: none;
-  transition: filter 500ms ease, transform 750ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: filter 500ms ease;
 }
 
 .record-choice__preview-canvas {
@@ -437,14 +438,6 @@ canvas {
 
 .record-choice--cold .record-choice__sleeve img {
   object-position: 66% center;
-}
-
-.record-choice--warm:not(:hover):not(:focus-visible) .record-choice__sleeve img {
-  animation: record-cover-warm-drift 16s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
-}
-
-.record-choice--cold:not(:hover):not(:focus-visible) .record-choice__sleeve img {
-  animation: record-cover-cold-drift 19s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
 }
 
 .record-choice__sleeve-grain {
@@ -567,7 +560,6 @@ canvas {
 .record-choice:hover .record-choice__sleeve img,
 .record-choice:focus-visible .record-choice__sleeve img {
   filter: brightness(1.08) saturate(1.06);
-  transform: scale(1.025);
 }
 
 .record-choice:focus-visible {
@@ -576,26 +568,6 @@ canvas {
 
 .record-choice:focus-visible .record-choice__sleeve {
   box-shadow: inset 0 0 0 2px #e4bd82, 0 0 0 0.3rem rgb(228 189 130 / 18%), 0 0.5rem 1.5rem rgb(0 0 0 / 35%);
-}
-
-@keyframes record-cover-warm-drift {
-  from {
-    transform: translate3d(-0.45%, 0.25%, 0) scale(1.025);
-  }
-
-  to {
-    transform: translate3d(0.55%, -0.4%, 0) scale(1.052);
-  }
-}
-
-@keyframes record-cover-cold-drift {
-  from {
-    transform: translate3d(0.45%, 0.3%, 0) scale(1.024);
-  }
-
-  to {
-    transform: translate3d(-0.55%, -0.45%, 0) scale(1.054);
-  }
 }
 
 @keyframes record-vinyl-idle {
@@ -991,8 +963,7 @@ canvas {
     animation-duration: 1ms;
   }
 
-  .record-choice__vinyl,
-  .record-choice__sleeve img {
+  .record-choice__vinyl {
     animation: none;
   }
 
