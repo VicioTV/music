@@ -196,16 +196,16 @@ canvas {
 .record-library__signature {
   position: absolute;
   z-index: 1;
-  left: 50%;
-  top: 55%;
-  width: 124vw;
-  max-width: none;
-  height: 72vh;
+  left: clamp(0.8rem, 2vw, 2rem);
+  top: clamp(0.5rem, 1.4vh, 1rem);
+  width: clamp(10rem, 18vw, 16rem);
+  height: auto;
+  aspect-ratio: 1;
   display: block;
-  opacity: 0.2;
+  opacity: 0.58;
   pointer-events: none;
   user-select: none;
-  transform: translate(-50%, -50%) rotate(-5deg);
+  transform: rotate(-24deg);
   transform-origin: center;
 }
 
@@ -576,6 +576,31 @@ canvas {
   letter-spacing: 0.07em;
 }
 
+.record-library__hint::before,
+.record-library__hint::after {
+  position: absolute;
+  left: 50%;
+  content: "";
+  pointer-events: none;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  transform: translateX(-50%);
+}
+
+.record-library__hint::before {
+  bottom: calc(100% + 0.82rem);
+  width: 1.9rem;
+  height: 1.65rem;
+  background: rgb(181 139 82 / 28%);
+  filter: drop-shadow(0 0 0.45rem rgb(0 0 0 / 72%));
+}
+
+.record-library__hint::after {
+  bottom: calc(100% + 0.9rem);
+  width: 1.66rem;
+  height: 1.43rem;
+  background: #020303;
+}
+
 .track-card {
   position: absolute;
   z-index: 4;
@@ -888,11 +913,12 @@ canvas {
   }
 
   .record-library__signature {
-    top: 50%;
-    width: 178vw;
-    height: 72vh;
-    opacity: 0.18;
-    transform: translate(-50%, -50%) rotate(-7deg);
+    left: 0.35rem;
+    top: 0.55rem;
+    width: 7.5rem;
+    height: auto;
+    opacity: 0.38;
+    transform: rotate(-24deg);
   }
 
   .record-library__header {
