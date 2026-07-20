@@ -965,19 +965,12 @@ canvas {
 
 @media (prefers-reduced-motion: reduce) {
   .scene__backdrop,
-  .record-choice__object,
-  .record-choice__vinyl,
-  .record-choice__sleeve img,
   .record-library,
   .record-library__signature,
   .collection-trigger,
   .collection-trigger__disc {
     transition-duration: 1ms;
     animation-duration: 1ms;
-  }
-
-  .record-choice__vinyl {
-    animation: none;
   }
 
   .track-card,

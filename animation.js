@@ -2107,14 +2107,13 @@
 
   function drawRecordPreviews(seconds) {
     if (recordLibrary.classList.contains("is-hidden")) return;
-    const timeline = reducedMotionQuery.matches ? 2.1 : seconds;
     miniSceneCanvases.forEach((canvas) => {
       const prepared = prepareMiniCanvas(canvas);
       if (!prepared) return;
       if (Number(canvas.dataset.miniScene) === 1) {
-        drawPortalMiniature(prepared.context, prepared.width, prepared.height, timeline);
+        drawPortalMiniature(prepared.context, prepared.width, prepared.height, seconds);
       } else {
-        drawStormMiniature(prepared.context, prepared.width, prepared.height, timeline);
+        drawStormMiniature(prepared.context, prepared.width, prepared.height, seconds);
       }
     });
   }
