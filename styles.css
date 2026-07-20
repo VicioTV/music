@@ -202,7 +202,7 @@ canvas {
   height: auto;
   aspect-ratio: 1;
   display: block;
-  opacity: 0.58;
+  object-fit: contain;
   pointer-events: none;
   user-select: none;
   transform: rotate(-24deg);
@@ -917,7 +917,6 @@ canvas {
     top: 0.55rem;
     width: 7.5rem;
     height: auto;
-    opacity: 0.38;
     transform: rotate(-24deg);
   }
 
