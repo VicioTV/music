@@ -21,6 +21,7 @@
   const trackArtist = document.querySelector(".track-card__artist");
   const recordLibrary = document.querySelector("#recordLibrary");
   const recordChoices = [...document.querySelectorAll("[data-track-id]")];
+  const miniSceneCanvases = [...document.querySelectorAll("[data-mini-scene]")];
   const libraryPreview = document.querySelector("#libraryPreview");
   const libraryPreviewButtons = [...document.querySelectorAll("[data-intro-track-id]")];
   const collectionTrigger = document.querySelector("#collectionTrigger");
@@ -75,6 +76,7 @@
   let sceneTwoBuildingLights = [];
   let hasEnteredScene = false;
   let activeLibraryIntro = null;
+  const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   const vertexShaderSource = `
     attribute vec2 a_position;
@@ -1787,6 +1789,282 @@
     updateTrackTimeline();
   }
 
+  function miniNoise(seed) {
+    const value = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+    return value - Math.floor(value);
+  }
+
+  function prepareMiniCanvas(canvas) {
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    if (width < 2 || height < 2) return null;
+    const pixelRatio = Math.min(2, window.devicePixelRatio || 1);
+    const targetWidth = Math.round(width * pixelRatio);
+    const targetHeight = Math.round(height * pixelRatio);
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
+    const context = canvas.getContext("2d");
+    context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    context.clearRect(0, 0, width, height);
+    return { context, width, height };
+  }
+
+  function drawMiniStone(context, x, y, radius, rotation, depth) {
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.beginPath();
+    for (let point = 0; point < 6; point += 1) {
+      const angle = point / 6 * Math.PI * 2;
+      const variation = 0.72 + miniNoise(point + depth * 31) * 0.38;
+      const pointX = Math.cos(angle) * radius * variation;
+      const pointY = Math.sin(angle) * radius * variation * 0.72;
+      if (point === 0) context.moveTo(pointX, pointY);
+      else context.lineTo(pointX, pointY);
+    }
+    context.closePath();
+    const stoneLight = context.createLinearGradient(-radius, -radius, radius, radius);
+    stoneLight.addColorStop(0, `rgba(222, 163, 87, ${0.22 + depth * 0.16})`);
+    stoneLight.addColorStop(0.35, `rgba(37, 30, 25, ${0.88 + depth * 0.1})`);
+    stoneLight.addColorStop(1, "rgba(3, 5, 7, 0.96)");
+    context.fillStyle = stoneLight;
+    context.shadowColor = "rgba(229, 168, 82, 0.18)";
+    context.shadowBlur = radius * 0.7;
+    context.fill();
+    context.restore();
+  }
+
+  function drawPortalMiniature(context, width, height, seconds, intensity) {
+    const centerX = width * 0.665;
+    const centerY = height * 0.44;
+    const breath = 0.5 + 0.5 * Math.sin(seconds * Math.PI * 0.34);
+    const radiusX = width * (0.137 + breath * 0.009);
+    const radiusY = height * (0.33 + breath * 0.014);
+
+    context.save();
+    context.globalCompositeOperation = "screen";
+    context.translate(centerX, centerY);
+    context.scale(1, radiusY / radiusX);
+    const portalGlow = context.createRadialGradient(0, 0, radiusX * 0.08, 0, 0, radiusX * 1.35);
+    portalGlow.addColorStop(0, `rgba(255, 245, 211, ${0.16 + breath * 0.12})`);
+    portalGlow.addColorStop(0.45, `rgba(255, 160, 45, ${0.08 + intensity * 0.08})`);
+    portalGlow.addColorStop(0.72, `rgba(255, 106, 18, ${0.16 + breath * 0.09})`);
+    portalGlow.addColorStop(1, "rgba(255, 91, 6, 0)");
+    context.fillStyle = portalGlow;
+    context.beginPath();
+    context.arc(0, 0, radiusX * 1.35, 0, Math.PI * 2);
+    context.fill();
+    context.restore();
+
+    context.save();
+    context.globalCompositeOperation = "lighter";
+    for (let ring = 0; ring < 4; ring += 1) {
+      const rotation = seconds * (0.12 + ring * 0.035) + ring * 1.7;
+      const ringPulse = 1 + Math.sin(seconds * 0.8 + ring * 2.1) * 0.018;
+      context.beginPath();
+      context.ellipse(
+        centerX,
+        centerY,
+        radiusX * ringPulse * (0.91 + ring * 0.035),
+        radiusY * ringPulse * (0.94 + ring * 0.025),
+        Math.sin(rotation) * 0.018,
+        rotation,
+        rotation + Math.PI * (1.05 + ring * 0.14)
+      );
+      context.strokeStyle = ring % 2
+        ? `rgba(255, 238, 194, ${0.24 + breath * 0.18})`
+        : `rgba(255, 130, 24, ${0.3 + intensity * 0.16})`;
+      context.lineWidth = Math.max(0.7, width * (0.003 + ring * 0.0008));
+      context.shadowColor = ring % 2 ? "#fff1c5" : "#ff781b";
+      context.shadowBlur = width * (0.018 + intensity * 0.014);
+      context.stroke();
+    }
+    context.restore();
+
+    const stonePositions = [
+      [0.11, 0.22, 0.038], [0.29, 0.19, 0.025], [0.43, 0.32, 0.02],
+      [0.18, 0.63, 0.035], [0.45, 0.72, 0.028], [0.84, 0.24, 0.024],
+      [0.9, 0.62, 0.037], [0.73, 0.78, 0.021], [0.34, 0.48, 0.016],
+    ];
+    stonePositions.forEach(([baseX, baseY, size], index) => {
+      const depth = 0.35 + miniNoise(index + 17) * 0.65;
+      const orbit = seconds * (0.18 + depth * 0.12) + index * 1.9;
+      const x = width * baseX + Math.cos(orbit) * width * (0.007 + depth * 0.008);
+      const y = height * baseY + Math.sin(orbit * 0.82) * height * (0.009 + depth * 0.012);
+      drawMiniStone(context, x, y, width * size, orbit * 0.72, depth);
+    });
+
+    context.save();
+    context.globalCompositeOperation = "lighter";
+    for (let index = 0; index < 54; index += 1) {
+      const speed = 0.075 + miniNoise(index + 41) * 0.07;
+      const phase = (miniNoise(index + 7) + seconds * speed) % 1;
+      const startX = width * (0.04 + miniNoise(index + 83) * 0.92);
+      const pull = Math.pow(phase, 1.45);
+      const x = startX + (centerX - startX) * pull + Math.sin(index * 4.3 + seconds) * width * 0.008 * (1 - pull);
+      const y = height * (0.98 - phase * 0.55) + Math.sin(index * 2.7 + seconds * 1.2) * height * 0.006;
+      const fade = Math.sin(phase * Math.PI);
+      const particleRadius = width * (0.0028 + miniNoise(index + 119) * 0.0032) * (0.9 + intensity * 0.3);
+      const isWhite = index % 5 === 0 || index % 11 === 0;
+      context.beginPath();
+      context.fillStyle = isWhite
+        ? `rgba(255, 246, 222, ${fade * 0.84})`
+        : `rgba(255, ${142 + Math.round(miniNoise(index) * 68)}, 51, ${fade * 0.78})`;
+      context.shadowColor = isWhite ? "#fff4d5" : "#ff8b24";
+      context.shadowBlur = particleRadius * (4 + intensity * 2);
+      context.arc(x, y, particleRadius, 0, Math.PI * 2);
+      context.fill();
+    }
+    context.restore();
+  }
+
+  function drawMiniLightning(context, width, height, strength, cycleSeed) {
+    const startX = width * (0.78 + miniNoise(cycleSeed) * 0.12);
+    const endX = width * (0.6 + miniNoise(cycleSeed + 3) * 0.15);
+    context.save();
+    context.globalCompositeOperation = "lighter";
+    context.beginPath();
+    context.moveTo(startX, -height * 0.02);
+    const boltPoints = [{ x: startX, y: -height * 0.02 }];
+    for (let step = 1; step <= 8; step += 1) {
+      const progress = step / 8;
+      const jitter = (miniNoise(cycleSeed * 19 + step) - 0.5) * width * 0.055 * (1 - progress * 0.38);
+      const point = {
+        x: startX + (endX - startX) * progress + jitter,
+        y: height * progress * 0.48,
+      };
+      boltPoints.push(point);
+      context.lineTo(point.x, point.y);
+    }
+    context.strokeStyle = `rgba(232, 247, 255, ${0.94 * strength})`;
+    context.lineWidth = Math.max(0.9, width * 0.0042);
+    context.shadowColor = "#9fd5ff";
+    context.shadowBlur = width * 0.036;
+    context.stroke();
+
+    [3, 5, 6].forEach((anchorIndex, branchIndex) => {
+      const anchor = boltPoints[anchorIndex];
+      const direction = branchIndex % 2 === 0 ? -1 : 1;
+      context.beginPath();
+      context.moveTo(anchor.x, anchor.y);
+      for (let branchStep = 1; branchStep <= 3; branchStep += 1) {
+        context.lineTo(
+          anchor.x + direction * width * (0.025 * branchStep + miniNoise(cycleSeed + branchStep * 7) * 0.012),
+          anchor.y + height * branchStep * 0.035
+        );
+      }
+      context.strokeStyle = `rgba(201, 234, 255, ${0.5 * strength})`;
+      context.lineWidth = Math.max(0.55, width * 0.0021);
+      context.stroke();
+    });
+    context.restore();
+  }
+
+  function drawStormMiniature(context, width, height, seconds, intensity) {
+    context.save();
+    context.globalCompositeOperation = "screen";
+    for (let index = 0; index < 96; index += 1) {
+      const speed = 0.11 + miniNoise(index + 9) * 0.16;
+      const phase = (miniNoise(index + 51) + seconds * speed) % 1;
+      const x = width * (miniNoise(index + 93) + phase * 0.08) % width;
+      const y = height * (1.05 - phase * 1.12);
+      const radius = width * (0.0019 + miniNoise(index + 133) * 0.0027);
+      context.beginPath();
+      context.fillStyle = `rgba(192, 229, 248, ${0.18 + miniNoise(index) * 0.38})`;
+      context.shadowColor = "rgba(169, 218, 246, 0.7)";
+      context.shadowBlur = radius * 2.5;
+      context.arc(x, y, radius * (0.85 + intensity * 0.2), 0, Math.PI * 2);
+      context.fill();
+    }
+    context.restore();
+
+    const stormCycle = seconds % 6.8;
+    const firstStrike = stormCycle > 0.9 && stormCycle < 1.48
+      ? Math.sin((stormCycle - 0.9) / 0.58 * Math.PI)
+      : 0;
+    const secondStrike = stormCycle > 1.68 && stormCycle < 2.3
+      ? Math.sin((stormCycle - 1.68) / 0.62 * Math.PI)
+      : 0;
+    const lightning = Math.max(firstStrike * 0.72, secondStrike);
+    if (lightning > 0.01) {
+      context.save();
+      context.fillStyle = `rgba(172, 218, 244, ${lightning * 0.24})`;
+      context.fillRect(0, 0, width, height);
+      context.restore();
+      drawMiniLightning(context, width, height, lightning, Math.floor(seconds / 6.8) + 4);
+    }
+
+    const helicopterX = width * 0.6;
+    const helicopterY = height * 0.267;
+    const spotlightCycle = seconds % 11.5;
+    const facingCamera = spotlightCycle > 3.5 && spotlightCycle < 4.9;
+    const cameraStrength = facingCamera
+      ? Math.sin((spotlightCycle - 3.5) / 1.4 * Math.PI)
+      : 0;
+    const sweep = 0.5 + 0.5 * Math.sin(seconds * 0.48);
+    const targetX = facingCamera ? width * 0.55 : width * (0.42 + sweep * 0.34);
+    const targetY = facingCamera ? height * 1.04 : height * (0.72 + sweep * 0.2);
+
+    context.save();
+    context.globalCompositeOperation = "screen";
+    const beamGradient = context.createLinearGradient(helicopterX, helicopterY, targetX, targetY);
+    beamGradient.addColorStop(0, `rgba(222, 244, 255, ${0.4 + cameraStrength * 0.3})`);
+    beamGradient.addColorStop(0.45, `rgba(166, 215, 241, ${0.1 + cameraStrength * 0.15})`);
+    beamGradient.addColorStop(1, "rgba(130, 194, 228, 0)");
+    context.fillStyle = beamGradient;
+    context.beginPath();
+    context.moveTo(helicopterX - width * 0.012, helicopterY + height * 0.01);
+    context.lineTo(targetX - width * (0.09 + cameraStrength * 0.14), targetY);
+    context.lineTo(targetX + width * (0.09 + cameraStrength * 0.14), targetY);
+    context.lineTo(helicopterX + width * 0.012, helicopterY + height * 0.01);
+    context.closePath();
+    context.fill();
+
+    const lampGlow = context.createRadialGradient(helicopterX, helicopterY, 0, helicopterX, helicopterY, width * 0.055);
+    lampGlow.addColorStop(0, `rgba(255, 255, 255, ${0.78 + cameraStrength * 0.2})`);
+    lampGlow.addColorStop(0.2, `rgba(191, 229, 250, ${0.42 + cameraStrength * 0.28})`);
+    lampGlow.addColorStop(1, "rgba(123, 192, 230, 0)");
+    context.fillStyle = lampGlow;
+    context.beginPath();
+    context.arc(helicopterX, helicopterY, width * 0.055, 0, Math.PI * 2);
+    context.fill();
+
+    if (cameraStrength > 0.01) {
+      const cameraFlash = context.createRadialGradient(
+        width * 0.55,
+        height * 0.52,
+        0,
+        width * 0.55,
+        height * 0.52,
+        Math.max(width, height) * 0.76
+      );
+      cameraFlash.addColorStop(0, `rgba(226, 246, 255, ${cameraStrength * 0.32})`);
+      cameraFlash.addColorStop(0.35, `rgba(151, 211, 241, ${cameraStrength * 0.13})`);
+      cameraFlash.addColorStop(1, "rgba(112, 177, 216, 0)");
+      context.fillStyle = cameraFlash;
+      context.fillRect(0, 0, width, height);
+    }
+    context.restore();
+  }
+
+  function drawRecordPreviews(seconds) {
+    if (recordLibrary.classList.contains("is-hidden")) return;
+    const timeline = reducedMotionQuery.matches ? 2.1 : seconds;
+    miniSceneCanvases.forEach((canvas) => {
+      const prepared = prepareMiniCanvas(canvas);
+      if (!prepared) return;
+      const entry = canvas.closest(".record-entry");
+      const intensity = entry?.classList.contains("is-previewing") ? 1 : 0.52;
+      if (Number(canvas.dataset.miniScene) === 1) {
+        drawPortalMiniature(prepared.context, prepared.width, prepared.height, timeline, intensity);
+      } else {
+        drawStormMiniature(prepared.context, prepared.width, prepared.height, timeline, intensity);
+      }
+    });
+  }
+
   function render(gl, now) {
     const seconds = getElapsedSeconds(now);
     const progress = (seconds % LOOP_SECONDS) / LOOP_SECONDS;
@@ -1804,6 +2082,7 @@
     } else {
       drawStationScene(seconds);
     }
+    drawRecordPreviews(seconds);
     enforcePreviewLimit();
     updateTrackTimeline();
     animationFrame = requestAnimationFrame((nextNow) => render(gl, nextNow));
