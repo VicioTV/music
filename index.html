@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="dark">
     <title>Creador100k — Night Records</title>
-    <link rel="stylesheet" href="styles.css?v=20260719-21">
+    <link rel="stylesheet" href="styles.css?v=20260719-22">
   </head>
   <body>
     <main class="scene scene--track-1" data-track="1" aria-label="Experiencia audiovisual de Creador100k">
@@ -98,54 +98,81 @@
         </header>
 
         <div class="record-library__shelf" role="group" aria-label="Canciones disponibles">
-          <button
-            class="record-choice record-choice--warm"
-            type="button"
-            data-track-id="1"
-            aria-label="Escuchar I have to go… forever de Creador100k"
-          >
-            <span class="record-choice__object" aria-hidden="true">
-              <span class="record-choice__vinyl">
-                <span class="record-choice__label record-choice__label--one"></span>
+          <div class="record-entry">
+            <button
+              class="record-choice record-choice--warm"
+              type="button"
+              data-track-id="1"
+              aria-label="Abrir la escena de I have to go… forever de Creador100k"
+            >
+              <span class="record-choice__object" aria-hidden="true">
+                <span class="record-choice__vinyl">
+                  <span class="record-choice__label record-choice__label--one"></span>
+                </span>
+                <span class="record-choice__sleeve">
+                  <img src="Imagen1.png" alt="" draggable="false">
+                  <span class="record-choice__sleeve-grain"></span>
+                  <span class="record-choice__number">01</span>
+                </span>
               </span>
-              <span class="record-choice__sleeve">
-                <img src="Imagen1.png" alt="" draggable="false">
-                <span class="record-choice__sleeve-grain"></span>
-                <span class="record-choice__number">01</span>
+              <span class="record-choice__details">
+                <span class="record-choice__title">I have to go… forever</span>
+                <span class="record-choice__meta">Creador100k · Preview 0:00–1:40</span>
               </span>
-            </span>
-            <span class="record-choice__details">
-              <span class="record-choice__title">I have to go… forever</span>
-              <span class="record-choice__meta">Creador100k · Preview 0:00–1:40</span>
-            </span>
-          </button>
+            </button>
+            <button
+              class="record-intro"
+              type="button"
+              data-intro-track-id="1"
+              aria-label="Reproducir intro de I have to go… forever, desde 0:39 hasta 1:05"
+              aria-pressed="false"
+            >
+              <span class="record-intro__icon" aria-hidden="true"></span>
+              <span class="record-intro__label">Intro</span>
+              <span class="record-intro__time">0:39–1:05</span>
+            </button>
+          </div>
 
-          <button
-            class="record-choice record-choice--cold"
-            type="button"
-            data-track-id="2"
-            aria-label="Escuchar Perfume and Wine 壊さないで de Creador100k"
-          >
-            <span class="record-choice__object" aria-hidden="true">
-              <span class="record-choice__vinyl">
-                <span class="record-choice__label record-choice__label--two"></span>
+          <div class="record-entry">
+            <button
+              class="record-choice record-choice--cold"
+              type="button"
+              data-track-id="2"
+              aria-label="Abrir la escena de Perfume and Wine 壊さないで de Creador100k"
+            >
+              <span class="record-choice__object" aria-hidden="true">
+                <span class="record-choice__vinyl">
+                  <span class="record-choice__label record-choice__label--two"></span>
+                </span>
+                <span class="record-choice__sleeve">
+                  <img src="Imagen2.png" alt="" draggable="false">
+                  <span class="record-choice__sleeve-grain"></span>
+                  <span class="record-choice__number">02</span>
+                </span>
               </span>
-              <span class="record-choice__sleeve">
-                <img src="Imagen2.png" alt="" draggable="false">
-                <span class="record-choice__sleeve-grain"></span>
-                <span class="record-choice__number">02</span>
+              <span class="record-choice__details">
+                <span class="record-choice__title">Perfume and Wine 壊さないで</span>
+                <span class="record-choice__meta">Creador100k · Preview 1:00–2:39</span>
               </span>
-            </span>
-            <span class="record-choice__details">
-              <span class="record-choice__title">Perfume and Wine 壊さないで</span>
-              <span class="record-choice__meta">Creador100k · Preview 1:00–2:39</span>
-            </span>
-          </button>
+            </button>
+            <button
+              class="record-intro"
+              type="button"
+              data-intro-track-id="2"
+              aria-label="Reproducir intro de Perfume and Wine 壊さないで, desde 1:19 hasta 1:40"
+              aria-pressed="false"
+            >
+              <span class="record-intro__icon" aria-hidden="true"></span>
+              <span class="record-intro__label">Intro</span>
+              <span class="record-intro__time">1:19–1:40</span>
+            </button>
+          </div>
         </div>
 
-        <p class="record-library__hint">Enter para escuchar · Esc para volver</p>
+        <p class="record-library__hint">Intro para escuchar · Portada para entrar · Esc para volver</p>
       </section>
+      <audio id="libraryPreview" preload="metadata"></audio>
     </main>
-    <script src="animation.js?v=20260719-22"></script>
+    <script src="animation.js?v=20260719-23"></script>
   </body>
 </html>

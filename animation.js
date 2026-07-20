@@ -21,6 +21,8 @@
   const trackArtist = document.querySelector(".track-card__artist");
   const recordLibrary = document.querySelector("#recordLibrary");
   const recordChoices = [...document.querySelectorAll("[data-track-id]")];
+  const libraryPreview = document.querySelector("#libraryPreview");
+  const libraryPreviewButtons = [...document.querySelectorAll("[data-intro-track-id]")];
   const collectionTrigger = document.querySelector("#collectionTrigger");
 
   const TRACKS = [
@@ -32,6 +34,8 @@
       audio: "Imagen1.mp3",
       previewStart: 0,
       previewEnd: 100,
+      libraryIntroStart: 39,
+      libraryIntroEnd: 65,
       sceneLabel: "Escena del portal",
     },
     {
@@ -42,6 +46,8 @@
       audio: "Imagen2.mp3",
       previewStart: 60,
       previewEnd: 159,
+      libraryIntroStart: 79,
+      libraryIntroEnd: 100,
       sceneLabel: "Escena de la azotea bajo la tormenta",
     },
   ];
@@ -68,6 +74,7 @@
   let sceneTwoDebris = [];
   let sceneTwoBuildingLights = [];
   let hasEnteredScene = false;
+  let activeLibraryIntro = null;
 
   const vertexShaderSource = `
     attribute vec2 a_position;
@@ -1802,7 +1809,95 @@
     animationFrame = requestAnimationFrame((nextNow) => render(gl, nextNow));
   }
 
+  function resetLibraryIntroVisuals() {
+    libraryPreviewButtons.forEach((button) => {
+      button.classList.remove("is-playing");
+      button.setAttribute("aria-pressed", "false");
+      button.style.setProperty("--intro-progress", "0%");
+      button.closest(".record-entry")?.classList.remove("is-previewing");
+      const track = TRACKS.find((item) => item.id === Number(button.dataset.introTrackId));
+      if (track) {
+        button.setAttribute(
+          "aria-label",
+          `Reproducir intro de ${track.title}, desde ${formatTrackTime(track.libraryIntroStart)} hasta ${formatTrackTime(track.libraryIntroEnd)}`
+        );
+      }
+    });
+  }
+
+  function stopLibraryIntro({ resetPosition = true } = {}) {
+    const stoppedTrack = activeLibraryIntro;
+    libraryPreview.pause();
+    if (resetPosition && stoppedTrack && Number.isFinite(libraryPreview.duration)) {
+      libraryPreview.currentTime = stoppedTrack.libraryIntroStart;
+    }
+    activeLibraryIntro = null;
+    resetLibraryIntroVisuals();
+  }
+
+  function updateLibraryIntroProgress() {
+    if (!activeLibraryIntro) return;
+    const duration = activeLibraryIntro.libraryIntroEnd - activeLibraryIntro.libraryIntroStart;
+    const elapsed = libraryPreview.currentTime - activeLibraryIntro.libraryIntroStart;
+    const progress = Math.min(1, Math.max(0, elapsed / duration));
+    const activeButton = libraryPreviewButtons.find(
+      (button) => Number(button.dataset.introTrackId) === activeLibraryIntro.id
+    );
+    activeButton?.style.setProperty("--intro-progress", `${(progress * 100).toFixed(2)}%`);
+
+    if (libraryPreview.currentTime >= activeLibraryIntro.libraryIntroEnd) {
+      stopLibraryIntro();
+    }
+  }
+
+  function handleLibraryIntroMetadata() {
+    if (!activeLibraryIntro) return;
+    if (
+      libraryPreview.currentTime < activeLibraryIntro.libraryIntroStart
+      || libraryPreview.currentTime >= activeLibraryIntro.libraryIntroEnd
+    ) {
+      libraryPreview.currentTime = activeLibraryIntro.libraryIntroStart;
+    }
+  }
+
+  function handleLibraryIntroPlaying() {
+    if (!activeLibraryIntro) return;
+    const activeButton = libraryPreviewButtons.find(
+      (button) => Number(button.dataset.introTrackId) === activeLibraryIntro.id
+    );
+    activeButton?.classList.add("is-playing");
+    activeButton?.setAttribute("aria-pressed", "true");
+    activeButton?.setAttribute("aria-label", `Pausar intro de ${activeLibraryIntro.title}`);
+    activeButton?.closest(".record-entry")?.classList.add("is-previewing");
+  }
+
+  function toggleLibraryIntro(trackId) {
+    const selectedIntro = TRACKS.find((track) => track.id === trackId);
+    if (!selectedIntro) return;
+
+    if (activeLibraryIntro?.id === selectedIntro.id && !libraryPreview.paused) {
+      stopLibraryIntro();
+      return;
+    }
+
+    stopLibraryIntro({ resetPosition: false });
+    soundtrack.pause();
+    activeLibraryIntro = selectedIntro;
+    const mediaFragment = `${selectedIntro.audio}#t=${selectedIntro.libraryIntroStart},${selectedIntro.libraryIntroEnd}`;
+    libraryPreview.src = mediaFragment;
+    libraryPreview.load();
+    try {
+      libraryPreview.currentTime = selectedIntro.libraryIntroStart;
+    } catch (_) {
+      // loadedmetadata corrige la posición antes de que el audio sea audible.
+    }
+    libraryPreview.play().catch(() => {
+      stopLibraryIntro({ resetPosition: false });
+    });
+  }
+
   function closeLibrary() {
+    stopLibraryIntro();
     recordLibrary.classList.add("is-hidden");
     recordLibrary.setAttribute("aria-hidden", "true");
     recordLibrary.inert = true;
@@ -1826,6 +1921,7 @@
     const selectedTrack = TRACKS.find((track) => track.id === trackId);
     if (!selectedTrack) return;
 
+    stopLibraryIntro();
     soundtrack.pause();
     soundtrack.currentTime = 0;
     activeTrack = selectedTrack;
@@ -1935,6 +2031,13 @@
         recordChoices.forEach((choice) => {
           choice.addEventListener("click", () => selectTrack(Number(choice.dataset.trackId)));
         });
+        libraryPreviewButtons.forEach((button) => {
+          button.addEventListener("click", () => toggleLibraryIntro(Number(button.dataset.introTrackId)));
+        });
+        libraryPreview.addEventListener("loadedmetadata", handleLibraryIntroMetadata);
+        libraryPreview.addEventListener("playing", handleLibraryIntroPlaying);
+        libraryPreview.addEventListener("timeupdate", updateLibraryIntroProgress);
+        libraryPreview.addEventListener("ended", () => stopLibraryIntro());
         collectionTrigger.addEventListener("click", openLibrary);
         document.addEventListener("keydown", handleDocumentKeydown);
         document.addEventListener("fullscreenchange", handleFullscreenChange);

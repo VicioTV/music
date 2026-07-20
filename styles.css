@@ -271,6 +271,13 @@ canvas {
   margin-inline: auto;
 }
 
+.record-entry {
+  display: grid;
+  justify-items: center;
+  gap: clamp(0.65rem, 1.4vh, 0.9rem);
+  min-width: 0;
+}
+
 .record-choice {
   display: grid;
   justify-items: center;
@@ -283,6 +290,101 @@ canvas {
   background: transparent;
   border: 0;
   cursor: pointer;
+}
+
+.record-intro {
+  --intro-progress: 0%;
+  position: relative;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 0.48rem;
+  min-width: 9.75rem;
+  min-height: 2.75rem;
+  padding: 0.68rem 0.9rem 0.78rem;
+  overflow: hidden;
+  color: rgb(239 229 214 / 58%);
+  font-family: "Gill Sans", "Trebuchet MS", sans-serif;
+  font-size: clamp(0.58rem, 0.72vw, 0.68rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.085em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  transition: color 180ms cubic-bezier(0, 0, 0.2, 1), transform 180ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.record-intro::after {
+  position: absolute;
+  right: 0.9rem;
+  bottom: 0.35rem;
+  left: 0.9rem;
+  height: 1px;
+  content: "";
+  background:
+    linear-gradient(90deg, #d5a967 0 var(--intro-progress), rgb(239 229 214 / 13%) var(--intro-progress) 100%);
+  box-shadow: 0 0 0.45rem rgb(213 169 103 / 30%);
+}
+
+.record-intro__icon {
+  position: relative;
+  width: 0.7rem;
+  height: 0.7rem;
+}
+
+.record-intro__icon::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  content: "";
+  border-top: 0.28rem solid transparent;
+  border-bottom: 0.28rem solid transparent;
+  border-left: 0.44rem solid currentColor;
+  transform: translate(-38%, -50%);
+}
+
+.record-intro__time {
+  color: rgb(239 229 214 / 34%);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.045em;
+}
+
+.record-intro:hover,
+.record-intro:focus-visible,
+.record-intro.is-playing {
+  color: #ecc98f;
+  transform: translateY(-0.1rem);
+}
+
+.record-intro:focus-visible {
+  outline: 1px solid rgb(228 189 130 / 72%);
+  outline-offset: 0.15rem;
+}
+
+.record-intro.is-playing .record-intro__icon::before {
+  width: 0.5rem;
+  height: 0.58rem;
+  border: 0;
+  border-right: 0.14rem solid currentColor;
+  border-left: 0.14rem solid currentColor;
+  transform: translate(-50%, -50%);
+}
+
+.record-entry.is-previewing .record-choice__object {
+  filter: drop-shadow(0 1.8rem 1.55rem rgb(0 0 0 / 58%)) drop-shadow(0 0 1.25rem rgb(211 158 86 / 13%));
+}
+
+.record-entry.is-previewing .record-choice:not(:hover):not(:focus-visible) .record-choice__vinyl {
+  animation: record-vinyl-idle 7s linear infinite;
+}
+
+.record-entry.is-previewing:nth-child(2) .record-choice:not(:hover):not(:focus-visible) .record-choice__vinyl {
+  animation-direction: reverse;
 }
 
 .record-choice__object {
