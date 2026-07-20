@@ -1900,26 +1900,22 @@
 
     context.save();
     context.globalCompositeOperation = "lighter";
-    for (let ring = 0; ring < 4; ring += 1) {
-      const rotation = seconds * (0.24 + ring * 0.055) + ring * 1.7;
-      const ringPulse = 1 + Math.sin(seconds * 1.05 + ring * 2.1) * 0.034;
+    context.filter = `blur(${Math.max(3, width * 0.016)}px)`;
+    for (let flare = 0; flare < 14; flare += 1) {
+      const orbit = seconds * (0.2 + (flare % 3) * 0.018) + flare / 14 * Math.PI * 2;
+      const pulse = 0.82 + Math.sin(seconds * 0.78 + flare * 1.73) * 0.18;
+      const x = centerX + Math.cos(orbit) * radiusX * (0.9 + breath * 0.035);
+      const y = centerY + Math.sin(orbit) * radiusY * (0.94 + breath * 0.03);
+      const flareRadius = width * (0.038 + pulse * 0.018);
+      const flareGlow = context.createRadialGradient(x, y, 0, x, y, flareRadius);
+      flareGlow.addColorStop(0, `rgba(255, 241, 184, ${0.22 + pulse * 0.12})`);
+      flareGlow.addColorStop(0.3, `rgba(255, 174, 55, ${0.2 + breath * 0.1})`);
+      flareGlow.addColorStop(0.68, `rgba(255, 104, 18, ${0.13 + pulse * 0.06})`);
+      flareGlow.addColorStop(1, "rgba(255, 83, 7, 0)");
+      context.fillStyle = flareGlow;
       context.beginPath();
-      context.ellipse(
-        centerX,
-        centerY,
-        radiusX * ringPulse * (0.91 + ring * 0.035),
-        radiusY * ringPulse * (0.94 + ring * 0.025),
-        Math.sin(rotation) * 0.018,
-        rotation,
-        rotation + Math.PI * (1.05 + ring * 0.14)
-      );
-      context.strokeStyle = ring % 2
-        ? `rgba(255, 238, 194, ${0.3 + breath * 0.22})`
-        : "rgba(255, 130, 24, 0.48)";
-      context.lineWidth = Math.max(0.7, width * (0.003 + ring * 0.0008));
-      context.shadowColor = ring % 2 ? "#fff1c5" : "#ff781b";
-      context.shadowBlur = width * 0.033;
-      context.stroke();
+      context.arc(x, y, flareRadius, 0, Math.PI * 2);
+      context.fill();
     }
     context.restore();
 
